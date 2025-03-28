@@ -1,83 +1,112 @@
 ﻿using System;
+using ELibraryBusinessDataLogic;
 
-class Program
+namespace CheckerSystem
 {
-    public static void Main()
+
+    internal class Program
     {
-        Console.WriteLine("Welcome to Checker E-Library System");
-        Console.WriteLine("-------------------------------------");
-
-        while (true)
+        public static void Main()
         {
-            string UserOption = ShowMenu();
+            Console.WriteLine("-------------------------------------");
+            Console.WriteLine("Welcome to E-Library System");
+            Console.WriteLine("-------------------------------------");
 
-            switch (UserOption)
+            while (true)
             {
-                case "1":
-                    RegisterMember();
-                    break;
-                case "2":
-                    BookGenre();
-                    break;
-                case "3":
-                    Console.WriteLine("Exiting the Library. Thank you for visiting!");
-                    return;
-                default:
-                    Console.WriteLine("Please Choose between number 1-3");
-                    break;
+                ShowMenu();
 
-
+                string UserMenu = Console.ReadLine();
+                switch (UserMenu)
+                {
+                    case "1":
+                        RegisterMember();
+                        break;
+                    case "2":
+                        BookGenre();
+                        break;
+                    case "3":
+                        Console.WriteLine("Exiting the system. Thank you for visiting!");
+                        return;
+                    default:
+                        Console.WriteLine("Invalid Choice. Please try again.");
+                        break;
+                }
             }
         }
-    }
-
-    static string ShowMenu()
-    {
-        Console.WriteLine("------------------------");
-        Console.WriteLine("MENU: ");
-        Console.WriteLine("[1] Register");
-        Console.WriteLine("[2] Find more Books");
-        Console.WriteLine("[3] Exit");
-        Console.Write("Choose an option (1/2/3): ");
-        return Console.ReadLine();
-    }
-
-    static void RegisterMember()
-    {
-        Console.WriteLine("--------------------------");
-        Console.WriteLine("Register Member");
-        Console.Write("Enter Full Name or Username: ");
-        Console.ReadLine();
-        Console.WriteLine("Enter Your Age: ");
-        int UserAge;
-        if (int.TryParse(Console.ReadLine(), out UserAge))
+        static void ShowMenu()
         {
-            if (UserAge > 17)
+            Console.WriteLine("MENU: ");
+            Console.WriteLine("[1] Register\n[2] Find more Books\n[3] Exit");
+            Console.Write("Choose an option (1/2/3): ");
+            
+        }
+
+        static void RegisterMember()
+        {
+            Console.WriteLine("--------------------------");
+            Console.WriteLine("-----Register Member-----");
+            Console.Write("Enter Full Name or Username: ");
+            string UserName = Console.ReadLine();
+            Console.WriteLine("Enter Your Age: ");
+            string AgeInput = Console.ReadLine();
+
+            bool result = E_LibraryProcedure.UserAction(UserName, AgeInput);
+            if (result == false)
             {
-                Console.WriteLine("-----You are now registered successfully!-----");
-            }
-            else if (UserAge <= 17)
-            {
-                Console.WriteLine("You are still Underage");
-                Console.WriteLine("Thank you for trying!");
+                Console.WriteLine("You are stil Underage. Thank you for Visiting!");
             }
         }
-        else
-        {
-            Console.WriteLine("Invalid Age! Please enter a valid number.");
+                static void BookGenre()
+                {
+                    do
+                    {
+                        string[] RecommendGenre = { "Fantasy", "Romance", "Drama", "Science-Fiction", "Action", "Historical" };
+                        Console.WriteLine("Available Genres:");
+                        Console.WriteLine("--------------------");
+                        Array.Sort(RecommendGenre);
+                        foreach (string AvailableGenre in RecommendGenre)
+                        {
+                            Console.WriteLine(AvailableGenre);
+                        }
+                        Console.Write("Enter the Genre You Want: ");
+                        string UserInput = Console.ReadLine();
+
+                        if (E_LibraryProcedure.BookGenre(UserInput))
+                        {
+                            switch (UserInput)
+                            {
+                                case "Fantasy":
+                                    Console.WriteLine("Titan Academy\nCharm Academy\nTantei High\nOlympus Academy");
+                                    break;
+                                case "Romance":
+                                    Console.WriteLine("Hell University\nUniversity Series\nBuenaventura Series\nThe Girl He Never Noticed");
+                                    break;
+                                case "Drama":
+                                    Console.WriteLine("The Tempest\nA Wife's Cry\nSalamasim\nA Taste of Sky");
+                                    break;
+                                case "Science-Fiction":
+                                    Console.WriteLine("Ender's Game\nProject: Yngrid\nThe Peculiars Tale\nMnemosyne's Tale");
+                                    break;
+                                case "Action":
+                                    Console.WriteLine("The Tempest\nA Wife's Cry\nSalamasim\nA Taste of Sky");
+                                    break;
+                                case "Historical":
+                                    Console.WriteLine("I LOve You Since 1892\nReincarnated as Binibini\nOur Asymptotic Love");
+                                    break;
+                                default:
+                                    Console.WriteLine("Genre Not Available or Genre is not on the List!");
+                                    break;
+                            }
+
+                        }
+                        Console.Write("Do you want to select another genre? (Yes/No): ");
+                    } while (Console.ReadLine().Trim().ToLower() == "yes");
+                    Console.WriteLine("Thank you for visiting our E-Library!");
+                }
+            }
         }
-    }
-    static void BookGenre()
-    {
-        Console.WriteLine("-----------------");
-        Console.WriteLine("List of Recommended Books and Genres");
-        Console.WriteLine("Fantasy");
-        Console.WriteLine("Romance");
-        Console.WriteLine("Mystery");
-        Console.WriteLine("Science Fiction");
+    
 
-        Console.WriteLine("-----------------"); 
-    }
-}
 
-                
+
