@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.13.35825.156
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CheckerSystem", "ConsoleApp1\CheckerSystem.csproj", "{A3022F21-1849-481B-95FC-75D2916E98FC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ELibrarySystem", "ConsoleApp1\ELibrarySystem.csproj", "{A3022F21-1849-481B-95FC-75D2916E98FC}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ELibraryBusinessDataLogic", "ELibraryBusinessDataLogic\ELibraryBusinessDataLogic.csproj", "{42DE38DB-4AD2-4CC3-B9C4-433118F0AB3D}"
 EndProject
