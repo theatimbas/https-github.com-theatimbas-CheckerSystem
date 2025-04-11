@@ -10,7 +10,9 @@ namespace ELibraryBusinessDataLogic
     {
         Register,
         BrowseGenre,
-        RecommendedBooks,
+        AddBooks,
+        RemoveBooks,
+        UpdateBooks,
         Exit
 
     }
