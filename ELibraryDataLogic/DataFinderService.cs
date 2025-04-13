@@ -1,5 +1,4 @@
-﻿using ELibraryBusinessDataLogic;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace ELibraryDataLogic
 {
@@ -30,11 +29,11 @@ namespace ELibraryDataLogic
             });
         }
 
-        public static bool ValidateAccount(string userName, string password, int age)
+        public static bool ValidateAccount(string UserName, string Password, int Age)
         {
             foreach (var account in accounts)
             {
-                if (account.UserName == userName && account.Password == password && account.Age == age)
+                if (account.UserName == UserName && account.Password == Password && account.Age == Age)
                 {
                     return true;
                 }
@@ -47,24 +46,24 @@ namespace ELibraryDataLogic
             return accounts;
         }
 
-        public static bool IsUserAlreadyRegistered(string userName)
+        public static bool IsUserAlreadyRegistered(string UserName)
         {
-            return accounts.Exists(a => a.UserName == userName);
+            return accounts.Exists(a => a.UserName == UserName);
         }
 
-        public static bool RegisterAccount(string userName, string password, int age)
+        public static bool RegisterAccount(string UserName, string Password, int Age)
         {
-            if (IsUserAlreadyRegistered(userName))
+            if (IsUserAlreadyRegistered(UserName))
                 return false;
 
-            UserAccount newUser = new UserAccount
+            UserAccount NewUser = new UserAccount
             {
-                UserName = userName,
-                Password = password,
-                Age = age
+                UserName = UserName,
+                Password = Password,
+                Age = Age
             };
 
-            accounts.Add(newUser);
+            accounts.Add(NewUser);
             return true;
         }
     }

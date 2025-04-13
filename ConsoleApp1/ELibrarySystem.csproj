@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ELibraryBusinessDataLogic\ELibraryBusinessDataLogic.csproj" />
+    <ProjectReference Include="..\ELibraryBusinessDataLogic\ELibraryBusinessLogic.csproj" />
   </ItemGroup>
 
 </Project>

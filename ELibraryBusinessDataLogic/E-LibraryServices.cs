@@ -21,28 +21,28 @@ namespace ELibraryBusinessDataLogic
 
         private static string currentUser;
 
-        public static bool ValidateUser(string userName, string userPassword, string ageInput)
+        public static bool ValidateUser(string UserName, string UserPassword, string AgeInput)
         {
-            if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(userPassword))
+            if (string.IsNullOrWhiteSpace(UserName) || string.IsNullOrWhiteSpace(UserPassword))
                 return false;
 
-            if (!int.TryParse(ageInput, out int userAge) || userAge <= 17)
+            if (!int.TryParse(AgeInput, out int UserAge) || UserAge <= 17)
                 return false;
 
-            bool registered = ELibraryDataLogic.RegisterAccount(userName, userPassword, userAge);
+            bool registered = DataFinder.RegisterAccount(UserName, UserPassword, UserAge);
             if (registered)
             {
-                currentUser = userName;
-                if (!UserFavorites.ContainsKey(userName))
-                    UserFavorites[userName] = new List<string>();
+                currentUser = UserName;
+                if (!UserFavorites.ContainsKey(UserName))
+                    UserFavorites[UserName] = new List<string>();
             }
 
             return registered;
         }
 
-        public static bool IsUserAlreadyRegistered(string userName)
+        public static bool IsUserAlreadyRegistered(string UserName)
         {
-            return ELibraryDataLogic.IsUserAlreadyRegistered(userName);
+            return DataFinder.IsUserAlreadyRegistered(UserName);
         }
 
         public static bool BookGenre(string genre)
@@ -62,45 +62,74 @@ namespace ELibraryBusinessDataLogic
 
         public static List<string> MyFavorites()
         {
-            if (currentUser != null && UserFavorites.ContainsKey(currentUser))
-                return new List<string>(UserFavorites[currentUser]); // Return a copy
+            if (CurrentUser != null && UserFavorites.ContainsKey(CurrentUser))
+                return new List<string>(UserFavorites[CurrentUser]); // Return a copy
             return new List<string>();
         }
 
-        public static bool AddToFavorites(string bookName)
+        public static bool AddToFavorites(string BookName)
         {
-            if (string.IsNullOrWhiteSpace(bookName) || currentUser == null)
+            if (string.IsNullOrWhiteSpace(BookName) || CurrentUser == null)
                 return false;
 
-            if (!UserFavorites.ContainsKey(currentUser))
-                UserFavorites[currentUser] = new List<string>();
+            if (!UserFavorites.ContainsKey(CurrentUser))
+                UserFavorites[CurrentUser] = new List<string>();
 
-            UserFavorites[currentUser].Add(bookName);
+            UserFavorites[CurrentUser].Add(BookName);
             return true;
         }
 
-        public static bool RemoveFromFavorites(string bookName)
+        public static bool RemoveFromFavorites(string BookName)
         {
-            if (currentUser == null || !UserFavorites.ContainsKey(currentUser))
+            if (CurrentUser == null || !UserFavorites.ContainsKey(CurrentUser))
                 return false;
 
-            return UserFavorites[currentUser].Remove(bookName);
+            return UserFavorites[CurrentUser].Remove(BookName);
         }
 
-        public static bool UpdateFavorite(string oldBookName, string newBookName)
+        public static bool UpdateFavorite(string OldBookName, string NewBookName)
         {
-            if (string.IsNullOrWhiteSpace(newBookName) || currentUser == null || !UserFavorites.ContainsKey(currentUser))
+            if (string.IsNullOrWhiteSpace(NewBookName) || CurrentUser == null || !UserFavorites.ContainsKey(CurrentUser))
                 return false;
 
-            List<string> favorites = UserFavorites[currentUser];
-            int index = favorites.IndexOf(oldBookName);
+            List<string> favorites = UserFavorites[CurrentUser];
+            int index = favorites.IndexOf(OldBookName);
             if (index >= 0)
             {
-                favorites[index] = newBookName;
+                favorites[index] = NewBookName;
                 return true;
             }
 
             return false;
+        }
+        public static void SetCurrentUser(string UserName)
+        {
+            currentUser = UserName;
+            if (!UserFavorites.ContainsKey(UserName))
+                UserFavorites[UserName] = new List<string>();
+        }
+        public static List<string> SearchBooks(string keyword)
+        {
+            List<string> results = new();
+
+            foreach (var bookList in GenreBooks.Values)
+            {
+                results.AddRange(
+                    bookList.FindAll(book => book.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0)
+                );
+            }
+
+            return results;
+        }
+        public static string CurrentUser => CurrentUser;
+
+        public static bool LoginUser(string UserName, string Password, int Age)
+        {
+            bool valid = DataFinder.ValidateAccount(UserName, Password, Age);
+            if (valid)
+                currentUser = UserName;
+
+            return valid;
         }
     }
 }

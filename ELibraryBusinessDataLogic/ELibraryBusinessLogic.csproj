@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="DataFinder.cs" />
+    <ProjectReference Include="..\ELibraryDataLogic\ELibraryDataLogic.csproj" />
   </ItemGroup>
 
 </Project>

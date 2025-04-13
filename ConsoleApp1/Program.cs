@@ -1,4 +1,5 @@
 ﻿using ELibraryBusinessDataLogic;
+using ELibraryDataLogic;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,21 +8,24 @@ namespace ELibrarySystem
 {
     internal class Program
     {
-        public static void Main()
+        static void Main()
         {
             Console.WriteLine("-------------------------------------");
-            Console.WriteLine("---Pen Finder---");
+            Console.WriteLine("         ---Pen Finder---");
             Console.WriteLine("-------------------------------------");
 
             while (true)
             {
                 ShowMenu();
-                string UserMenu = Console.ReadLine();
+                string UserMenu = Console.ReadLine()?.Trim();
 
                 switch (UserMenu)
                 {
+                    case "0":
+                        LoginMember();
+                        break;
                     case "1":
-                        RegisterMember();
+                        RegisterOrLogIn();
                         break;
                     case "2":
                         BookGenre();
@@ -33,6 +37,9 @@ namespace ELibrarySystem
                         UpdateFavorites();
                         break;
                     case "5":
+                        SearchBooks();
+                        break;
+                    case "6":
                         Console.WriteLine("Exiting the system. Thank you for visiting!");
                         return;
                     default:
@@ -44,12 +51,18 @@ namespace ELibrarySystem
 
         static void ShowMenu()
         {
-            Console.WriteLine("MENU: ");
-            Console.WriteLine("[1] Register\n[2] Find more Books\n[3] My Favorites\n[4] Update Favorites\n[5] Exit");
-            Console.Write("Choose an option (1/2/3/4/5): ");
+            Console.WriteLine("\nMENU: ");
+            Console.WriteLine("[0] Login");
+            Console.WriteLine("[1] Register");
+            Console.WriteLine("[2] Find more Books");
+            Console.WriteLine("[3] My Favorites");
+            Console.WriteLine("[4] Update Favorites");
+            Console.WriteLine("[5] Search Books");
+            Console.WriteLine("[7] Exit");
+            Console.Write("Choose an option (0-6): ");
         }
 
-        static void RegisterMember()
+        static void RegisterOrLogIn()
         {
             Console.WriteLine("--------------------------");
             Console.WriteLine("-----Register Member-----");
@@ -60,21 +73,61 @@ namespace ELibrarySystem
             Console.Write("Enter Your Age: ");
             string AgeInput = Console.ReadLine();
 
-            bool isRegistered = E_LibraryServices.ValidateUser(UserName, UserPassword, AgeInput);
-
-            if (isRegistered)
+            if (string.IsNullOrWhiteSpace(UserName) || string.IsNullOrWhiteSpace(UserPassword) || string.IsNullOrWhiteSpace(AgeInput))
             {
-                Console.WriteLine("Registration successful! You can now explore books.");
+                Console.WriteLine("Invalid input. Please provide all details.");
+                return;
             }
-            else if (ELibraryDataLogic.IsUserAlreadyRegistered(UserName))
+
+            if (DataFinder.IsUserAlreadyRegistered(UserName))
             {
-                Console.WriteLine("Username already exists. Please choose a different one.");
+                Console.WriteLine("Account exists. Proceeding to login...");
+
+                if (int.TryParse(AgeInput, out int Age) && DataFinder.ValidateAccount(UserName, UserPassword, Age))
+                {
+                    Console.WriteLine($"Login successful! Welcome back, {UserName}.");
+                    E_LibraryServices.SetCurrentUser(UserName);
+                }
+                else
+                {
+                    Console.WriteLine("Login failed. Incorrect credentials.");
+                }
             }
             else
             {
-                Console.WriteLine("Registration failed! Check your details.");
+                bool registered = E_LibraryServices.ValidateUser(UserName, UserPassword, AgeInput);
+                if (registered)
+                {
+                    Console.WriteLine("Registration successful! You can now explore books.");
+                    E_LibraryServices.SetCurrentUser(UserName);
+                }
+                else
+                {
+                    Console.WriteLine("Registration failed. Please check your input.");
+                }
             }
-        } // <-- Fixed: closing brace for RegisterMember
+        }
+
+        static void LoginMember()
+        {
+            Console.WriteLine("-----Login Member-----");
+            Console.Write("Enter Username: ");
+            string UserName = Console.ReadLine();
+            Console.Write("Enter Password: ");
+            string UserPassword = Console.ReadLine();
+            Console.Write("Enter Age: ");
+            string AgeInput = Console.ReadLine();
+
+            if (int.TryParse(AgeInput, out int Age) && DataFinder.ValidateAccount(UserName, UserPassword, Age))
+            {
+                Console.WriteLine($"Login successful! Welcome, {UserName}.");
+                E_LibraryServices.SetCurrentUser(UserName);
+            }
+            else
+            {
+                Console.WriteLine("Login failed. Please check your credentials.");
+            }
+        }
 
         static void BookGenre()
         {
@@ -82,31 +135,46 @@ namespace ELibrarySystem
             {
                 Console.WriteLine("-----Available Genres-----");
                 var genres = E_LibraryServices.GetGenreBooks();
-                var genreNames = genres.Keys.ToList();
-                genreNames.Sort();
+                var GenreNames = genres.Keys.ToList();
+                GenreNames.Sort();
 
-                foreach (var genre in genreNames)
+                foreach (var genre in GenreNames)
                     Console.WriteLine("- " + genre);
 
                 Console.Write("Enter the Genre You Want: ");
-                string UserInput = Console.ReadLine();
+                string UserInput = Console.ReadLine()?.Trim();
+
+                if (string.IsNullOrWhiteSpace(UserInput))
+                {
+                    Console.WriteLine("Genre input cannot be empty.");
+                    continue;
+                }
 
                 if (E_LibraryServices.BookGenre(UserInput))
                 {
                     var books = E_LibraryServices.GetBooksByGenre(UserInput);
                     Console.WriteLine("Recommended Books:");
-                    foreach (var book in books)
-                        Console.WriteLine("- " + book);
+                    for (int i = 0; i < books.Count; i++)
+                        Console.WriteLine($"[{i + 1}] {books[i]}");
 
                     Console.Write("Would you like to add a book to your Favorites? (Yes/No): ");
-                    if (Console.ReadLine().Trim().ToLower() == "yes")
+                    if (Console.ReadLine()?.Trim().ToLower() == "yes")
                     {
-                        Console.Write("Enter the book you want to add: ");
-                        string AddedBook = Console.ReadLine();
-                        if (E_LibraryServices.AddToFavorites(AddedBook))
-                            Console.WriteLine($"'{AddedBook}' added to Favorites!");
+                        Console.Write("Enter the number of the book: ");
+                        string input = Console.ReadLine();
+
+                        if (int.TryParse(input, out int BookIndex) && BookIndex >= 1 && BookIndex <= books.Count)
+                        {
+                            string SelectedBook = books[BookIndex - 1];
+                            if (E_LibraryServices.AddToFavorites(SelectedBook))
+                                Console.WriteLine($"'{SelectedBook}' added to Favorites!");
+                            else
+                                Console.WriteLine("Failed to add to favorites.");
+                        }
                         else
-                            Console.WriteLine("Book name cannot be empty.");
+                        {
+                            Console.WriteLine("Invalid selection.");
+                        }
                     }
                 }
                 else
@@ -115,7 +183,7 @@ namespace ELibrarySystem
                 }
 
                 Console.Write("Select another Genre? (Yes/No): ");
-            } while (Console.ReadLine().Trim().ToLower() == "yes");
+            } while (Console.ReadLine()?.Trim().ToLower() == "yes");
 
             Console.WriteLine("Thanks for using Pen Finder!");
         }
@@ -123,24 +191,24 @@ namespace ELibrarySystem
         static void MyFavorites()
         {
             Console.WriteLine("-----My Favorite Books-----");
-            var favorites = E_LibraryServices.MyFavorites();
+            var Favorites = E_LibraryServices.MyFavorites();
 
-            if (favorites.Count == 0)
+            if (Favorites.Count == 0)
             {
                 Console.WriteLine("No favorites added yet.");
                 return;
             }
 
-            foreach (var book in favorites)
+            foreach (var book in Favorites)
                 Console.WriteLine("- " + book);
 
             Console.Write("Remove a book? (Yes/No): ");
-            if (Console.ReadLine().Trim().ToLower() == "yes")
+            if (Console.ReadLine()?.Trim().ToLower() == "yes")
             {
                 Console.Write("Enter the book to remove: ");
-                string bookToRemove = Console.ReadLine();
-                if (E_LibraryServices.RemoveFromFavorites(bookToRemove))
-                    Console.WriteLine($"'{bookToRemove}' removed.");
+                string BookToRemove = Console.ReadLine();
+                if (E_LibraryServices.RemoveFromFavorites(BookToRemove))
+                    Console.WriteLine($"'{BookToRemove}' removed.");
                 else
                     Console.WriteLine("Book not found.");
             }
@@ -150,14 +218,34 @@ namespace ELibrarySystem
         {
             Console.WriteLine("-----Update Favorite Book-----");
             Console.Write("Enter current book name: ");
-            string oldName = Console.ReadLine();
+            string OldName = Console.ReadLine();
             Console.Write("Enter new book name: ");
-            string newName = Console.ReadLine();
+            string NewName = Console.ReadLine();
 
-            if (E_LibraryServices.UpdateFavorite(oldName, newName))
+            if (E_LibraryServices.UpdateFavorite(OldName, NewName))
                 Console.WriteLine("Book updated successfully.");
             else
                 Console.WriteLine("Update failed. Book may not exist.");
+        }
+
+        static void SearchBooks()
+        {
+            Console.WriteLine("-----Search for a Book-----");
+            Console.Write("Enter keyword: ");
+            string Keyword = Console.ReadLine();
+
+            var results = E_LibraryServices.SearchBooks(Keyword);
+
+            if (results.Count == 0)
+            {
+                Console.WriteLine("No books found.");
+            }
+            else
+            {
+                Console.WriteLine("Search Results:");
+                foreach (var book in results)
+                    Console.WriteLine("- " + book);
+            }
         }
     }
 }
