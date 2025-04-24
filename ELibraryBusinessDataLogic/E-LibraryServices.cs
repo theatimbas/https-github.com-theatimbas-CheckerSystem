@@ -121,7 +121,7 @@ namespace ELibraryBusinessDataLogic
 
             return results;
         }
-        public static string CurrentUser => CurrentUser;
+        public static string CurrentUser => currentUser;
 
         public static bool LoginUser(string UserName, string Password, int Age)
         {

@@ -1,16 +1,28 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 
 namespace ELibraryDataLogic
 {
     public class UserAccount
     {
+        private string _userName;
         private string _password = "default1";
+        private int _age;
 
-        public string UserName { get; set; }
+        public string UserName 
+        { get => _userName; 
+            set
+            {
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    _userName = value;
+                }
+                else
+                {
+                    throw new ArgumentException("Username cannot be empty or whitespace.");
+                }
+            }
+        }
 
         public string Password
         {
@@ -29,7 +41,20 @@ namespace ELibraryDataLogic
             }
         }
 
-        public int Age { get; set; }
+        public int Age 
+        { get => _age;
+            set
+            {
+                if (value >= 18 && value <= 120)
+                {
+                    _age = value;
+                }
+                else
+                {
+                    throw new ArgumentOutOfRangeException(nameof(value), "Age must be between 18 and 120.");
+                }
+            }
+        }
     }
 }
 

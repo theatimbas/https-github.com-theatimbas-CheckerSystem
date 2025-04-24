@@ -8,6 +8,9 @@ namespace ELibrarySystem
 {
     internal class Program
     {
+        static bool isLoggedIn = false;
+        static string currentUser = string.Empty;
+
         static void Main()
         {
             Console.WriteLine("-------------------------------------");
@@ -22,26 +25,54 @@ namespace ELibrarySystem
                 switch (UserMenu)
                 {
                     case "0":
-                        LoginMember();
+                        if (!isLoggedIn)
+                            LoginMember();
+                        else
+                            Console.WriteLine("You're already logged in.");
                         break;
                     case "1":
-                        RegisterOrLogIn();
+                        if (!isLoggedIn)
+                            RegisterOrLogIn();
+                        else
+                            Console.WriteLine("You're already logged in.");
                         break;
                     case "2":
-                        BookGenre();
+                        if (isLoggedIn)
+                            BookGenre();
+                        else
+                            Console.WriteLine("Please log in first.");
                         break;
                     case "3":
-                        MyFavorites();
+                        if (isLoggedIn)
+                            MyFavorites();
+                        else
+                            Console.WriteLine("Please log in first.");
                         break;
                     case "4":
-                        UpdateFavorites();
+                        if (isLoggedIn)
+                            UpdateFavorites();
+                        else
+                            Console.WriteLine("Please log in first.");
                         break;
                     case "5":
-                        SearchBooks();
+                        if (isLoggedIn)
+                            SearchBooks();
+                        else
+                            Console.WriteLine("Please log in first.");
                         break;
                     case "6":
-                        Console.WriteLine("Exiting the system. Thank you for visiting!");
-                        return;
+                        if (isLoggedIn)
+                        {
+                            Console.WriteLine("Logging out...");
+                            isLoggedIn = false;
+                            currentUser = string.Empty;
+                        }
+                        else
+                        {
+                            Console.WriteLine("Exiting the system. Thank you for visiting!");
+                            return;
+                        }
+                        break;
                     default:
                         Console.WriteLine("Invalid Choice. Please try again.");
                         break;
@@ -52,13 +83,23 @@ namespace ELibrarySystem
         static void ShowMenu()
         {
             Console.WriteLine("\nMENU: ");
-            Console.WriteLine("[0] Login");
-            Console.WriteLine("[1] Register");
-            Console.WriteLine("[2] Find more Books");
-            Console.WriteLine("[3] My Favorites");
-            Console.WriteLine("[4] Update Favorites");
-            Console.WriteLine("[5] Search Books");
-            Console.WriteLine("[7] Exit");
+            if (!isLoggedIn)
+            {
+                Console.WriteLine("[0] Login");
+                Console.WriteLine("[1] Register");
+            }
+            else
+            {
+                Console.WriteLine("[2] Find more Books");
+                Console.WriteLine("[3] My Favorites");
+                Console.WriteLine("[4] Update Favorites");
+                Console.WriteLine("[5] Search Books");
+                Console.WriteLine("[6] Log Out");
+            }
+            if (!isLoggedIn)
+            {
+                Console.WriteLine("[6] Exit");
+            }
             Console.Write("Choose an option (0-6): ");
         }
 
@@ -68,12 +109,11 @@ namespace ELibrarySystem
             Console.WriteLine("-----Register Member-----");
             Console.Write("Enter Username: ");
             string UserName = Console.ReadLine();
-            Console.Write("Enter Your Password: ");
-            string UserPassword = Console.ReadLine();
+            string UserPassword = GetValidPassword();
             Console.Write("Enter Your Age: ");
             string AgeInput = Console.ReadLine();
 
-            if (string.IsNullOrWhiteSpace(UserName) || string.IsNullOrWhiteSpace(UserPassword) || string.IsNullOrWhiteSpace(AgeInput))
+            if (string.IsNullOrWhiteSpace(UserName) || string.IsNullOrWhiteSpace(AgeInput))
             {
                 Console.WriteLine("Invalid input. Please provide all details.");
                 return;
@@ -86,7 +126,8 @@ namespace ELibrarySystem
                 if (int.TryParse(AgeInput, out int Age) && DataFinder.ValidateAccount(UserName, UserPassword, Age))
                 {
                     Console.WriteLine($"Login successful! Welcome back, {UserName}.");
-                    E_LibraryServices.SetCurrentUser(UserName);
+                    isLoggedIn = true;
+                    currentUser = UserName;
                 }
                 else
                 {
@@ -99,7 +140,8 @@ namespace ELibrarySystem
                 if (registered)
                 {
                     Console.WriteLine("Registration successful! You can now explore books.");
-                    E_LibraryServices.SetCurrentUser(UserName);
+                    isLoggedIn = true;
+                    currentUser = UserName;
                 }
                 else
                 {
@@ -113,19 +155,36 @@ namespace ELibrarySystem
             Console.WriteLine("-----Login Member-----");
             Console.Write("Enter Username: ");
             string UserName = Console.ReadLine();
-            Console.Write("Enter Password: ");
-            string UserPassword = Console.ReadLine();
+            string UserPassword = GetValidPassword();
             Console.Write("Enter Age: ");
             string AgeInput = Console.ReadLine();
 
             if (int.TryParse(AgeInput, out int Age) && DataFinder.ValidateAccount(UserName, UserPassword, Age))
             {
                 Console.WriteLine($"Login successful! Welcome, {UserName}.");
-                E_LibraryServices.SetCurrentUser(UserName);
+                isLoggedIn = true;
+                currentUser = UserName;
             }
             else
             {
                 Console.WriteLine("Login failed. Please check your credentials.");
+            }
+        }
+
+        static string GetValidPassword()
+        {
+            while (true)
+            {
+                Console.Write("Enter Password (6 or 8 characters): ");
+                string password = Console.ReadLine();
+                if (!string.IsNullOrWhiteSpace(password) && (password.Length == 6 || password.Length == 8))
+                {
+                    return password;
+                }
+                else
+                {
+                    Console.WriteLine("Password must be exactly 6 or 8 characters. Try again.");
+                }
             }
         }
 
