@@ -1,4 +1,6 @@
-﻿namespace ELibraryDataLogic
+﻿using System;
+
+namespace ELibraryDataLogic
 {
     public class UserAccount
     {
