@@ -6,20 +6,16 @@ namespace ELibraryDataLogic
 {
     public class TextFileDataService : IFinderDataService
     {
-        private readonly string filePath = "account.txt";
+        private readonly string filePath = "accounts.txt";
         private List<UserAccount> accounts = new List<UserAccount>();
 
-        public TextFileDataService()
-        {
-            LoadFromFile();
-        }
+        public TextFileDataService() => LoadFromFile();
 
         private void LoadFromFile()
         {
             if (!File.Exists(filePath)) return;
 
             var lines = File.ReadAllLines(filePath);
-
             foreach (var line in lines)
             {
                 var parts = line.Split('|');
@@ -52,33 +48,32 @@ namespace ELibraryDataLogic
 
         public List<UserAccount> GetAccounts() => accounts;
 
-        public UserAccount GetUser(string userName) => accounts.Find(u => u.UserName == userName);
+        public UserAccount GetUser(string userName) =>
+            accounts.Find(u => u.UserName == userName);
 
-        public void CreateAccount(UserAccount newUser)
+        public void CreateAccount(UserAccount userAccount)
         {
-            if (GetUser(newUser.UserName) != null) return;
-            if (newUser.Favorites == null) newUser.Favorites = new List<string>();
-
-            accounts.Add(newUser);
+            if (GetUser(userAccount.UserName) != null) return;
+            accounts.Add(userAccount);
             SaveToFile();
         }
 
-        public void UpdateAccount(UserAccount updatedUser)
+        public void UpdateAccount(UserAccount userAccount)
         {
-            int index = accounts.FindIndex(u => u.UserName == updatedUser.UserName);
+            int index = accounts.FindIndex(u => u.UserName == userAccount.UserName);
             if (index != -1)
             {
-                accounts[index] = updatedUser;
+                accounts[index] = userAccount;
                 SaveToFile();
             }
         }
 
         public void RemoveAccount(string userName)
         {
-            int index = accounts.FindIndex(u => u.UserName == userName);
-            if (index != -1)
+            var account = GetUser(userName);
+            if (account != null)
             {
-                accounts.RemoveAt(index);
+                accounts.Remove(account);
                 SaveToFile();
             }
         }
@@ -101,15 +96,13 @@ namespace ELibraryDataLogic
         public bool IsUserAlreadyRegistered(string userName) =>
             GetUser(userName) != null;
 
-        public bool ValidateAccount(string userName, string password, int age)
-        {
-            return accounts.Exists(u => u.UserName == userName && u.Password == password && u.Age == age);
-        }
+        public bool ValidateAccount(string userName, string password, int age) =>
+            accounts.Exists(u => u.UserName == userName && u.Password == password && u.Age == age);
 
         public bool AddFavorite(string userName, string book)
         {
             var user = GetUser(userName);
-            if (user == null || string.IsNullOrWhiteSpace(book) || user.Favorites.Contains(book)) return false;
+            if (user == null || user.Favorites.Contains(book)) return false;
 
             user.Favorites.Add(book);
             SaveToFile();

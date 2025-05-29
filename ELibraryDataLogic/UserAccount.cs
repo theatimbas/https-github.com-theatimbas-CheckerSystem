@@ -1,4 +1,6 @@
-﻿namespace ELibraryDataLogic
+﻿using System.Collections.Generic;
+
+namespace ELibraryDataLogic
 {
     public class UserAccount
     {

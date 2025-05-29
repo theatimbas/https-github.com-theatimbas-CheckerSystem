@@ -5,230 +5,202 @@ namespace ELibrarySystem
 {
     internal class Program
     {
-        static bool isLoggedIn = false;
-
         static void Main()
         {
-            Console.WriteLine("-------------------------------------");
-            Console.WriteLine("         ---Pen Finder---");
-            Console.WriteLine("-------------------------------------");
+            Console.WriteLine("-------- Welcome to Pen Finder --------");
 
             while (true)
             {
                 ShowMenu();
-                string userChoice = Console.ReadLine()?.Trim();
 
-                switch (userChoice)
+                Console.Write("\nChoose an option: ");
+                string choice = Console.ReadLine()?.Trim();
+
+                switch (choice)
                 {
-                    case "0":
-                        if (!isLoggedIn)
-                            LoginMember();
-                        else
-                            Console.WriteLine("You're already logged in.");
-                        break;
-                    case "1":
-                        if (isLoggedIn)
-                            MyFavorites();
-                        else
-                            Console.WriteLine("Please log in first.");
-                        break;
-                    case "2":
-                        if (isLoggedIn)
-                            UpdateFavorites();
-                        else
-                            Console.WriteLine("Please log in first.");
-                        break;
-                    case "3":
-                        if (isLoggedIn)
-                            RemoveFavorite();
-                        else
-                            Console.WriteLine("Please log in first.");
-                        break;
-                    case "4":
-                        if (isLoggedIn)
-                            Logout();
-                        else
-                            Console.WriteLine("Please log in first.");
-                        break;
-                    case "5":
-                        Console.WriteLine("Exiting the system. Thank you for visiting!");
-                        return;
-                    case "6":
-                        if (isLoggedIn)
-                            BrowseBooksMenu();
-                        else
-                            Console.WriteLine("Please log in first.");
-                        break;
-                    case "7":
-                        RegisterNewAccount();
-                        break;
-                    default:
-                        Console.WriteLine("Invalid Choice. Please try again.");
-                        break;
+                    case "0": Login(); break;
+                    case "1": Register(); break;
+                    case "2": BrowseGenres(); break;
+                    case "3": ViewFavorites(); break;
+                    case "4": UpdateFavorite(); break;
+                    case "5": RemoveFavorite(); break;
+                    case "6": AddBookToGenre(); break;
+                    case "8": Logout(); break;
+                    case "9": Console.WriteLine("Goodbye!"); return;
+                    default: Console.WriteLine("Invalid option. Try again."); break;
                 }
             }
         }
 
         static void ShowMenu()
         {
-            Console.WriteLine("\nMENU:");
-            if (!isLoggedIn)
-            {
-                Console.WriteLine("[0] Login");
-                Console.WriteLine("[7] Register New Account");
-                Console.WriteLine("[5] Exit");
-            }
-            else
-            {
-                Console.WriteLine("[1] View My Favorites");
-                Console.WriteLine("[2] Update Favorite Book");
-                Console.WriteLine("[3] Remove a Favorite Book");
-                Console.WriteLine("[4] Log Out");
-                Console.WriteLine("[6] Browse Books");
-                Console.WriteLine("[5] Exit");
-            }
-            Console.Write("Choose an option: ");
+            Console.WriteLine("\nMain Menu");
+            Console.WriteLine("[0] Login");
+            Console.WriteLine("[1] Register");
+            Console.WriteLine("[2] Browse Books by Genre");
+            Console.WriteLine("[3] View My Favorites");
+            Console.WriteLine("[4] Update Favorite Book");
+            Console.WriteLine("[5] Remove a Favorite Book");
+            Console.WriteLine("[6] Add Book to Genre");
+            Console.WriteLine("[8] Logout");
+            Console.WriteLine("[9] Exit");
         }
 
-        static void LoginMember()
+        static void Login()
         {
-            Console.WriteLine("-----Login Member-----");
-            Console.Write("Enter Username: ");
-            string userName = Console.ReadLine()?.Trim();
-            Console.Write("Enter Password: ");
-            string password = Console.ReadLine()?.Trim();
-            Console.Write("Enter Age: ");
-            string ageInput = Console.ReadLine()?.Trim();
-
-            if (int.TryParse(ageInput, out int age) && E_LibraryServices.ValidateAccount(userName, password, age))
-            {
-                Console.WriteLine($"Login successful! Welcome, {userName}.");
-                isLoggedIn = true;
-            }
-            else
-            {
-                Console.WriteLine("Login failed. Please check your credentials.");
-            }
-        }
-
-        static void RegisterNewAccount()
-        {
-            Console.WriteLine("----- Register New User -----");
-            Console.Write("Enter Username: ");
-            string userName = Console.ReadLine()?.Trim();
-            Console.Write("Enter Password: ");
-            string password = Console.ReadLine()?.Trim();
-            Console.Write("Enter Age: ");
-            string ageInput = Console.ReadLine()?.Trim();
-
-            if (!int.TryParse(ageInput, out int age))
+            Console.Write("Username: ");
+            string username = Console.ReadLine();
+            Console.Write("Password: ");
+            string password = Console.ReadLine();
+            Console.Write("Age: ");
+            if (!int.TryParse(Console.ReadLine(), out int age))
             {
                 Console.WriteLine("Invalid age.");
                 return;
             }
 
-            if (E_LibraryServices.RegisterAccount(userName, password, age))
-                Console.WriteLine("Registration successful. You can now log in.");
+            if (E_LibraryServices.Login(username, password, age))
+                Console.WriteLine("Login successful!");
             else
-                Console.WriteLine("Registration failed. Username might already be taken.");
+                Console.WriteLine("Login failed. Check credentials.");
         }
 
-        static void MyFavorites()
+        static void Register()
         {
-            Console.WriteLine("-----My Favorite Books-----");
-            var favorites = E_LibraryServices.MyFavorites();
-
-            if (favorites.Count == 0)
+            Console.Write("New Username: ");
+            string username = Console.ReadLine();
+            Console.Write("Password: ");
+            string password = Console.ReadLine();
+            Console.Write("Age: ");
+            if (!int.TryParse(Console.ReadLine(), out int age))
             {
-                Console.WriteLine("No favorites added yet.");
+                Console.WriteLine("Invalid age.");
                 return;
             }
 
-            foreach (var book in favorites)
-                Console.WriteLine("- " + book);
+            if (E_LibraryServices.RegisterAccount(username, password, age))
+                Console.WriteLine("Registration successful!");
+            else
+                Console.WriteLine("Registration failed. Username may exist.");
         }
 
-        static void UpdateFavorites()
+        static void BrowseGenres()
         {
-            Console.WriteLine("-----Update Favorite Book-----");
-            Console.Write("Enter current book name: ");
-            string oldName = Console.ReadLine()?.Trim();
-            Console.Write("Enter new book name: ");
-            string newName = Console.ReadLine()?.Trim();
-
-            if (string.IsNullOrWhiteSpace(oldName) || string.IsNullOrWhiteSpace(newName))
+            if (!E_LibraryServices.IsLoggedIn())
             {
-                Console.WriteLine("Book names cannot be empty.");
+                Console.WriteLine("Please log in first.");
                 return;
             }
+
+            var genres = E_LibraryServices.GetGenres();
+            if (genres.Count == 0)
+            {
+                Console.WriteLine("No genres available.");
+                return;
+            }
+
+            Console.WriteLine("\nAvailable Genres:");
+            for (int i = 0; i < genres.Count; i++)
+                Console.WriteLine($"[{i}] {genres[i]}");
+
+            Console.Write("Select a genre: ");
+            if (!int.TryParse(Console.ReadLine(), out int index) || index < 0 || index >= genres.Count)
+            {
+                Console.WriteLine("Invalid selection.");
+                return;
+            }
+
+            var books = E_LibraryServices.GetBooksByGenre(genres[index]);
+            if (books.Count == 0)
+                Console.WriteLine("No books found.");
+            else
+                books.ForEach(b => Console.WriteLine("- " + b));
+        }
+
+        static void ViewFavorites()
+        {
+            if (!E_LibraryServices.IsLoggedIn())
+            {
+                Console.WriteLine("Please log in first.");
+                return;
+            }
+
+            var favs = E_LibraryServices.MyFavorites();
+            if (favs.Count == 0)
+                Console.WriteLine("No favorites yet.");
+            else
+                favs.ForEach(f => Console.WriteLine("- " + f));
+        }
+
+        static void UpdateFavorite()
+        {
+            if (!E_LibraryServices.IsLoggedIn())
+            {
+                Console.WriteLine("Please log in first.");
+                return;
+            }
+
+            Console.Write("Current book name: ");
+            string oldName = Console.ReadLine();
+            Console.Write("New book name: ");
+            string newName = Console.ReadLine();
 
             if (E_LibraryServices.UpdateFavorite(oldName, newName))
-                Console.WriteLine("Book updated successfully.");
+                Console.WriteLine("Favorite updated.");
             else
-                Console.WriteLine("Update failed. Book may not exist.");
+                Console.WriteLine("Update failed.");
         }
 
         static void RemoveFavorite()
         {
-            Console.WriteLine("-----Remove a Favorite Book-----");
-            Console.Write("Enter the book name to remove: ");
-            string bookToRemove = Console.ReadLine()?.Trim();
-
-            if (string.IsNullOrWhiteSpace(bookToRemove))
+            if (!E_LibraryServices.IsLoggedIn())
             {
-                Console.WriteLine("Book name cannot be empty.");
+                Console.WriteLine("Please log in first.");
                 return;
             }
 
-            if (E_LibraryServices.RemoveFromFavorites(bookToRemove))
-                Console.WriteLine($"'{bookToRemove}' removed from favorites.");
+            Console.Write("Book to remove: ");
+            string name = Console.ReadLine();
+
+            if (E_LibraryServices.RemoveFromFavorites(name))
+                Console.WriteLine("Book removed.");
             else
                 Console.WriteLine("Book not found in favorites.");
         }
 
-        static void BrowseBooksMenu()
+        static void AddBookToGenre()
         {
-            Console.WriteLine("----- Browse Books by Genre -----");
+            if (!E_LibraryServices.IsLoggedIn())
+            {
+                Console.WriteLine("Please log in first.");
+                return;
+            }
+
             var genres = E_LibraryServices.GetGenres();
-
+            Console.WriteLine("\nAvailable Genres:");
             for (int i = 0; i < genres.Count; i++)
-            {
                 Console.WriteLine($"[{i}] {genres[i]}");
-            }
-            Console.Write("Select a genre by number: ");
 
-            if (int.TryParse(Console.ReadLine(), out int genreIndex)
-                && genreIndex >= 0 && genreIndex < genres.Count)
-            {
-                string selectedGenre = genres[genreIndex];
-                var books = E_LibraryServices.GetBooksByGenre(selectedGenre);
+            Console.Write("Choose genre index or enter new genre: ");
+            string input = Console.ReadLine()?.Trim();
 
-                if (books.Count == 0)
-                {
-                    Console.WriteLine("No books available in this genre.");
-                    return;
-                }
+            string genre = int.TryParse(input, out int idx) && idx >= 0 && idx < genres.Count
+                ? genres[idx]
+                : input;
 
-                Console.WriteLine($"\nBooks in {selectedGenre}:");
-                for (int j = 0; j < books.Count; j++)
-                {
-                    Console.WriteLine($"[{j}] {books[j]}");
-                }
+            Console.Write("Enter book title to add: ");
+            string title = Console.ReadLine();
 
-                Console.WriteLine("\nPress any key to return to the main menu...");
-                Console.ReadKey();
-            }
+            if (E_LibraryServices.AddBookToGenre(genre, title))
+                Console.WriteLine($"'{title}' added to '{genre}'.");
             else
-            {
-                Console.WriteLine("Invalid selection. Returning to menu.");
-            }
+                Console.WriteLine("Failed to add book.");
         }
 
         static void Logout()
         {
-            Console.WriteLine("Logging out...");
             E_LibraryServices.Logout();
-            isLoggedIn = false;
+            Console.WriteLine("You have been logged out.");
         }
     }
 }

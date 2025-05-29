@@ -6,8 +6,8 @@ namespace ELibraryDataLogic
     {
         List<UserAccount> GetAccounts();
         UserAccount GetUser(string userName);
-        void CreateAccount(UserAccount newUser);
-        void UpdateAccount(UserAccount updatedUser);
+        void CreateAccount(UserAccount userAccount);
+        void UpdateAccount(UserAccount userAccount);
         void RemoveAccount(string userName);
         bool RegisterAccount(string userName, string password, int age);
         bool IsUserAlreadyRegistered(string userName);
