@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ELibraryBusinessLogic", "EL
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ELibraryDataLogic", "ELibraryDataLogic\ELibraryDataLogic.csproj", "{0A6773D0-AB3F-4250-BD71-6B5BCFBB75C2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PFinderCommon", "PFinderCommon\PFinderCommon.csproj", "{0CC7B36A-2ACF-47DD-B4B2-9E039DEBA83D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{0A6773D0-AB3F-4250-BD71-6B5BCFBB75C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0A6773D0-AB3F-4250-BD71-6B5BCFBB75C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0A6773D0-AB3F-4250-BD71-6B5BCFBB75C2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0CC7B36A-2ACF-47DD-B4B2-9E039DEBA83D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0CC7B36A-2ACF-47DD-B4B2-9E039DEBA83D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0CC7B36A-2ACF-47DD-B4B2-9E039DEBA83D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0CC7B36A-2ACF-47DD-B4B2-9E039DEBA83D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
