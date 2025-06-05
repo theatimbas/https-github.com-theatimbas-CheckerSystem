@@ -26,7 +26,7 @@ namespace ELibrarySystem
                     case "5": RemoveFavorite(); break;
                     case "6": AddBookToGenre(); break;
                     case "8": Logout(); break;
-                    case "9": Console.WriteLine("Goodbye!"); return;
+                    case "9": Console.WriteLine("Thank you for using PenFinder!"); return;
                     default: Console.WriteLine("Invalid option. Try again."); break;
                 }
             }
@@ -37,11 +37,11 @@ namespace ELibrarySystem
             Console.WriteLine("\nMain Menu");
             Console.WriteLine("[0] Login");
             Console.WriteLine("[1] Register");
-            Console.WriteLine("[2] Browse Books by Genre");
-            Console.WriteLine("[3] View My Favorites");
-            Console.WriteLine("[4] Update Favorite Book");
-            Console.WriteLine("[5] Remove a Favorite Book");
-            Console.WriteLine("[6] Add Book to Genre");
+            Console.WriteLine("[2] More Books");
+            Console.WriteLine("[3] Favorites");
+            Console.WriteLine("[4] Update Book");
+            Console.WriteLine("[5] Remove Book");
+            Console.WriteLine("[6] Add Booke");
             Console.WriteLine("[8] Logout");
             Console.WriteLine("[9] Exit");
         }
@@ -163,9 +163,9 @@ namespace ELibrarySystem
             string name = Console.ReadLine();
 
             if (E_LibraryServices.RemoveFromFavorites(name))
-                Console.WriteLine("Book removed.");
+                Console.WriteLine("Book Removed.");
             else
-                Console.WriteLine("Book not found in favorites.");
+                Console.WriteLine("Book not found in Favorites.");
         }
 
         static void AddBookToGenre()

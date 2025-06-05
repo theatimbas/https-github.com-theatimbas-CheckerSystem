@@ -176,21 +176,22 @@ namespace ELibraryDataLogic
 
         public List<string> GetFavorites(string userName)
         {
-            string query = "SELECT BookTitle FROM UserFavorites WHERE UserName = @UserName";
+            string query = "SELECT TitleFavorites FROM UserFavorites WHERE Username = @Username";
             using SqlCommand cmd = new SqlCommand(query, sqlConnection);
-            cmd.Parameters.AddWithValue("@UserName", userName);
-
-            List<string> favorites = new List<string>();
+            cmd.Parameters.AddWithValue("@Username", userName);
 
             sqlConnection.Open();
-            SqlDataReader reader = cmd.ExecuteReader();
-            while (reader.Read())
-            {
-                favorites.Add(reader["BookTitle"].ToString());
-            }
+            object result = cmd.ExecuteScalar();
             sqlConnection.Close();
 
-            return favorites;
+            if (result != null)
+            {
+                string favorites = result.ToString();
+                return new List<string>(favorites.Split(", ", StringSplitOptions.RemoveEmptyEntries));
+            }
+
+            return new List<string>();
         }
+
     }
 }
