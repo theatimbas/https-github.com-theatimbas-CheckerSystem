@@ -1,20 +1,16 @@
-﻿using PFinderCommon;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using PFinderCommon;
 
-namespace ELibraryDataLogic
+public interface IFinderDataService
 {
-    public interface IFinderDataService
-    {
-        List<UserAccount> GetAccounts();
-        UserAccount GetUser(string userName);
-        void CreateAccount(UserAccount userAccount);
-        void UpdateAccount(UserAccount userAccount);
-        void RemoveAccount(string userName);
-        bool RegisterAccount(string userName, string password, int age);
-        bool IsUserAlreadyRegistered(string userName);
-        bool ValidateAccount(string userName, string password, int age);
-        bool AddFavorite(string userName, string book);
-        bool RemoveFavorite(string userName, string book);
-        List<string> GetFavorites(string userName);
-    }
+    List<UserAccount> GetAccounts();
+    UserAccount GetAccountByUsername(string userName);
+    void CreateAccount(UserAccount userAccount);
+    void UpdateAccount(UserAccount userAccount);
+    void RemoveAccount(string userName);
+    bool ValidateAccount(string userName, string password);
+    bool IsUserAlreadyRegistered(string userName);
+    List<string> GetFavorites(string userName);
+    bool AddFavorite(string userName, string book);
+    bool RemoveFavorite(string userName, string book);
 }

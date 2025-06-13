@@ -1,108 +1,92 @@
-﻿using PFinderCommon;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Linq;
+using PFinderCommon;
 
 namespace ELibraryDataLogic
 {
     public class InMemoryDataService : IFinderDataService
     {
-        private readonly List<UserAccount> accounts = new();
+        private readonly List<UserAccount> users = new List<UserAccount>();
+        private readonly Dictionary<string, List<string>> genreBooks = new Dictionary<string, List<string>>();
 
-        public InMemoryDataService()
+        public List<UserAccount> GetAccounts()
         {
-            CreateDefaultAccounts();
+            return users;
         }
 
-        private void CreateDefaultAccounts()
+        public UserAccount GetAccountByUsername(string username)
         {
-            accounts.Add(new UserAccount
-            {
-                UserName = "lachimolala",
-                Password = "nabiee",
-                Age = 18,
-                Favorites = new List<string> { "Salamasim" }
-            });
-
-            accounts.Add(new UserAccount
-            {
-                UserName = "@spring_sensation",
-                Password = "password",
-                Age = 21,
-                Favorites = new List<string> { "Taste of Sky" }
-            });
+            return users.FirstOrDefault(u => u.UserName == username);
         }
 
-        public void CreateAccount(UserAccount newUser)
+        public void CreateAccount(UserAccount user)
         {
-            if (GetUser(newUser.UserName) == null)
+            if (!IsUserAlreadyRegistered(user.UserName))
             {
-                newUser.Favorites ??= new List<string>();
-                accounts.Add(newUser);
+                users.Add(user);
             }
         }
 
-        public List<UserAccount> GetAccounts() => accounts;
-
-        public UserAccount GetUser(string userName) =>
-            accounts.Find(u => u.UserName == userName);
-
-        public bool ValidateAccount(string userName, string password, int age) =>
-            accounts.Exists(u => u.UserName == userName && u.Password == password && u.Age == age);
+        public void UpdateAccount(UserAccount user)
+        {
+            var existingUser = GetAccountByUsername(user.UserName);
+            if (existingUser != null)
+            {
+                existingUser.Password = user.Password;
+                existingUser.Favorites = user.Favorites ?? new List<string>();
+            }
+        }
 
         public void RemoveAccount(string userName)
         {
-            var user = GetUser(userName);
-            if (user != null)
-                accounts.Remove(user);
-        }
-
-        public void UpdateAccount(UserAccount updatedUser)
-        {
-            var user = GetUser(updatedUser.UserName);
+            var user = GetAccountByUsername(userName);
             if (user != null)
             {
-                user.Password = updatedUser.Password;
-                user.Age = updatedUser.Age;
-                user.Favorites = updatedUser.Favorites;
+                users.Remove(user);
             }
         }
 
-        public bool IsUserAlreadyRegistered(string userName) =>
-            GetUser(userName) != null;
-
-        public bool RegisterAccount(string userName, string password, int age)
+        public bool ValidateAccount(string userName, string password)
         {
-            if (IsUserAlreadyRegistered(userName)) return false;
-
-            accounts.Add(new UserAccount
-            {
-                UserName = userName,
-                Password = password,
-                Age = age,
-                Favorites = new List<string>()
-            });
-
-            return true;
+            var user = GetAccountByUsername(userName);
+            return user != null && user.Password == password;
         }
 
-        public List<string> GetFavorites(string userName) =>
-            GetUser(userName)?.Favorites ?? new List<string>();
+        public bool IsUserAlreadyRegistered(string userName)
+        {
+            return users.Any(u => u.UserName == userName);
+        }
+
+        public List<string> GetFavorites(string userName)
+        {
+            var user = GetAccountByUsername(userName);
+            return user?.Favorites ?? new List<string>();
+        }
 
         public bool AddFavorite(string userName, string book)
         {
-            var user = GetUser(userName);
-            if (user == null || string.IsNullOrWhiteSpace(book) || user.Favorites.Contains(book))
-                return false;
-
-            user.Favorites.Add(book);
-            return true;
+            var user = GetAccountByUsername(userName);
+            if (user != null)
+            {
+                user.Favorites ??= new List<string>();
+                if (!user.Favorites.Contains(book))
+                {
+                    user.Favorites.Add(book);
+                    return true;
+                }
+            }
+            return false;
         }
 
         public bool RemoveFavorite(string userName, string book)
         {
-            var user = GetUser(userName);
-            if (user == null || string.IsNullOrWhiteSpace(book)) return false;
-
-            return user.Favorites.Remove(book);
+            var user = GetAccountByUsername(userName);
+            if (user != null && user.Favorites?.Contains(book) == true)
+            {
+                user.Favorites.Remove(book);
+                return true;
+            }
+            return false;
         }
     }
 }

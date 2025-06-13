@@ -1,85 +1,96 @@
-﻿using ELibraryDataLogic;
+﻿using System;
 using System.Collections.Generic;
 using PFinderCommon;
+using ELibraryDataLogic;
 
-namespace ELibraryBusinessDataLogic
+public static class E_LibraryServices
 {
-    public static class E_LibraryServices
+    private static IFinderDataService dataService = new PenFinderDB();
+
+    private static UserAccount currentUser = null;
+
+    public static bool RegisterAccount(string username, string password)
     {
-        private static IFinderDataService dataService = new TextFileDataService();
+        if (dataService.GetAccountByUsername(username) != null)
+            return false;
 
-        private static UserAccount currentUser = null;
-
-        private static readonly Dictionary<string, List<string>> genres = new()
+        var newUser = new UserAccount
         {
-            { "Fantasy", new List<string>{ "Titan Academy", "Charm Academy", "Tantei High", "Olympus Academy" } },
-            { "Romance", new List<string>{ "Hell University", "University Series", "Buenaventura Series", "The Girl He Never Noticed" } },
-            { "Drama", new List<string>{ "The Tempest", "A Wife's Cry", "Salamasim", "Taste of Sky" } },
-            { "Science-Fiction", new List<string>{ "Ender's Game", "Project: Yngrid", "The Peculiars Tale", "Mnemosyne's Tale" } },
-            { "Action", new List<string>{ "The Maze Runner", "The Hunger Games", "Divergent", "The Fifth Wave" } },
-            { "Historical", new List<string>{ "I Love You Since 1892", "Reincarnated as Binibini", "Our Asymptotic Love" } }
+            UserName = username,
+            Password = password,
+            Favorites = new List<string>(),
         };
 
-        public static bool Login(string username, string password, int age)
+        dataService.CreateAccount(newUser);
+        return true;
+    }
+
+    public static bool Login(string username, string password)
+    {
+        var user = dataService.GetAccountByUsername(username);
+        if (user != null && user.Password == password)
         {
-            if (dataService.ValidateAccount(username, password, age))
-            {
-                currentUser = dataService.GetUser(username);
-                return true;
-            }
-            return false;
+            currentUser = user;
+            return true;
         }
+        return false;
+    }
+    public static void Logout()
+    {
+        currentUser = null;
+    }
 
-        public static void Logout() => currentUser = null;
+    public static List<string> MyFavorites()
+    {
+        return currentUser?.Favorites ?? new List<string>();
+    }
 
-        public static bool IsLoggedIn() => currentUser != null;
+    public static bool RenameBookInUser(string oldName, string newName)
+    {
+        if (currentUser?.Favorites == null) return false;
 
-        public static bool RegisterAccount(string username, string password, int age) =>
-            dataService.RegisterAccount(username, password, age);
-
-        public static List<string> GetGenres() => new(genres.Keys);
-
-        public static List<string> GetBooksByGenre(string genre) =>
-            genres.ContainsKey(genre) ? genres[genre] : new List<string>();
-
-        public static bool AddBookToGenre(string genre, string book)
+        int index = currentUser.Favorites.IndexOf(oldName);
+        if (index >= 0 && !currentUser.Favorites.Contains(newName))
         {
-            if (!genres.ContainsKey(genre))
-                genres[genre] = new List<string>();
-
-            if (!genres[genre].Contains(book))
-            {
-                genres[genre].Add(book);
-                return true;
-            }
-            return false;
+            currentUser.Favorites[index] = newName;
+            dataService.UpdateAccount(currentUser);
+            return true;
         }
+        return false;
+    }
 
-        public static List<string> MyFavorites() =>
-            currentUser?.Favorites ?? new List<string>();
-
-        public static bool UpdateFavorite(string oldName, string newName)
+    public static bool RemoveBookFromUser(string book)
+    {
+        if (currentUser?.Favorites != null && currentUser.Favorites.Contains(book))
         {
-            if (currentUser != null &&
-                currentUser.Favorites.Contains(oldName) &&
-                !currentUser.Favorites.Contains(newName))
-            {
-                int index = currentUser.Favorites.IndexOf(oldName);
-                currentUser.Favorites[index] = newName;
-                dataService.UpdateAccount(currentUser);
-                return true;
-            }
-            return false;
+            currentUser.Favorites.Remove(book);
+            dataService.UpdateAccount(currentUser);
+            return true;
         }
+        return false;
+    }
 
-        public static bool RemoveFromFavorites(string book)
+    public static bool AddBookToUser(string book)
+    {
+        if (currentUser == null) return false;
+
+        currentUser.Favorites ??= new List<string>();
+        if (!currentUser.Favorites.Contains(book))
         {
-            if (currentUser != null && currentUser.Favorites.Remove(book))
-            {
-                dataService.UpdateAccount(currentUser);
-                return true;
-            }
-            return false;
+            currentUser.Favorites.Add(book);
+            dataService.UpdateAccount(currentUser);
+            return true;
         }
+        return false;
+    }
+
+    public static bool AddFavorite(string book)
+    {
+        return AddBookToUser(book);
+    }
+
+    public static bool RemoveFromFavorites(string book)
+    {
+        return RemoveBookFromUser(book);
     }
 }

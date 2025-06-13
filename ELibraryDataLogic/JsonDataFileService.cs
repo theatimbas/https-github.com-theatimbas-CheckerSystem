@@ -1,148 +1,150 @@
-﻿using PFinderCommon;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using PFinderCommon;
 
 namespace ELibraryDataLogic
 {
     public class JsonFileDataService : IFinderDataService
     {
-        private static List<UserAccount> accounts = new();
         private static string filePath = "accounts.json";
+        private List<UserAccount> users;
 
-        public JsonFileDataService()
+        public JsonFileDataService(string filePath = null)
         {
-            ReadJsonDataFromFile();
+            if (!string.IsNullOrWhiteSpace(filePath))
+                JsonFileDataService.filePath = filePath;
+
+            LoadFromFile();
         }
 
-        private void ReadJsonDataFromFile()
+        private void LoadFromFile()
         {
-            if (!File.Exists(filePath))
+            if (File.Exists(filePath))
             {
-                accounts = new List<UserAccount>();
-                return;
+                string json = File.ReadAllText(filePath);
+                users = JsonSerializer.Deserialize<List<UserAccount>>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? new List<UserAccount>();
             }
-
-            string jsonText = File.ReadAllText(filePath);
-            accounts = JsonSerializer.Deserialize<List<UserAccount>>(jsonText, new JsonSerializerOptions
+            else
             {
-                PropertyNameCaseInsensitive = true
-            }) ?? new List<UserAccount>();
+                users = new List<UserAccount>();
+            }
         }
 
-        private void WriteJsonDataToFile()
+        private void SaveToFile()
         {
-            string jsonString = JsonSerializer.Serialize(accounts, new JsonSerializerOptions
+            string json = JsonSerializer.Serialize(users, new JsonSerializerOptions
             {
                 WriteIndented = true
             });
-
-            File.WriteAllText(filePath, jsonString);
+            File.WriteAllText(filePath, json);
         }
 
-        private int FindIndex(UserAccount user)
+        public UserAccount GetAccountByUsername(string username)
         {
-            for (int i = 0; i < accounts.Count; i++)
+            return users.FirstOrDefault(u => u.UserName == username);
+        }
+
+        public void CreateAccount(UserAccount user)
+        {
+            if (!users.Any(u => u.UserName == user.UserName))
             {
-                if (accounts[i].UserName == user.UserName)
-                    return i;
+                user.Favorites ??= new List<string>();
+                users.Add(user);
+                SaveToFile();
             }
-            return -1;
         }
 
-        public List<UserAccount> GetAccounts() => accounts;
-
-        public UserAccount GetUser(string userName)
+        public void UpdateAccount(UserAccount user)
         {
-            return accounts.FirstOrDefault(u => u.UserName == userName);
-        }
-
-        public void CreateAccount(UserAccount newUser)
-        {
-            if (GetUser(newUser.UserName) != null)
-                return;
-
-            newUser.Favorites ??= new List<string>();
-            accounts.Add(newUser);
-            WriteJsonDataToFile();
-        }
-
-        public void UpdateAccount(UserAccount updatedUser)
-        {
-            int index = FindIndex(updatedUser);
-            if (index != -1)
+            var existing = GetAccountByUsername(user.UserName);
+            if (existing != null)
             {
-                accounts[index] = updatedUser;
-                WriteJsonDataToFile();
+                existing.Password = user.Password;
+                existing.Favorites = user.Favorites ?? new List<string>();
+                SaveToFile();
             }
         }
 
         public void RemoveAccount(string userName)
         {
-            var index = accounts.FindIndex(u => u.UserName == userName);
-            if (index != -1)
+            var user = GetAccountByUsername(userName);
+            if (user != null)
             {
-                accounts.RemoveAt(index);
-                WriteJsonDataToFile();
+                users.Remove(user);
+                SaveToFile();
             }
         }
 
-        public bool RegisterAccount(string userName, string password, int age)
+        public bool RegisterAccount(string userName, string password)
         {
-            if (IsUserAlreadyRegistered(userName)) return false;
+            if (IsUserAlreadyRegistered(userName))
+                return false;
 
-            CreateAccount(new UserAccount
+            var newUser = new UserAccount
             {
                 UserName = userName,
                 Password = password,
-                Age = age,
                 Favorites = new List<string>()
-            });
-
+            };
+            CreateAccount(newUser);
             return true;
         }
 
-        public bool ValidateAccount(string userName, string password, int age)
+        public bool ValidateAccount(string userName, string password)
         {
-            return accounts.Exists(u =>
-                u.UserName == userName &&
-                u.Password == password &&
-                u.Age == age);
+            var user = GetAccountByUsername(userName);
+            return user != null && user.Password == password;
         }
 
         public bool IsUserAlreadyRegistered(string userName)
         {
-            return GetUser(userName) != null;
+            return users.Any(u => u.UserName == userName);
         }
 
         public bool AddFavorite(string userName, string book)
         {
-            var user = GetUser(userName);
-            if (user == null || string.IsNullOrWhiteSpace(book) || user.Favorites.Contains(book))
-                return false;
+            var user = GetAccountByUsername(userName);
+            if (user != null)
+            {
+                user.Favorites ??= new List<string>();
 
-            user.Favorites.Add(book);
-            WriteJsonDataToFile();
-            return true;
+                if (!user.Favorites.Contains(book))
+                {
+                    user.Favorites.Add(book);
+                    SaveToFile();
+                    return true;
+                }
+            }
+            return false;
         }
 
         public bool RemoveFavorite(string userName, string book)
         {
-            var user = GetUser(userName);
-            if (user == null || !user.Favorites.Contains(book))
-                return false;
-
-            user.Favorites.Remove(book);
-            WriteJsonDataToFile();
-            return true;
+            var user = GetAccountByUsername(userName);
+            if (user != null && user.Favorites?.Contains(book) == true)
+            {
+                user.Favorites.Remove(book);
+                SaveToFile();
+                return true;
+            }
+            return false;
         }
 
         public List<string> GetFavorites(string userName)
         {
-            var user = GetUser(userName);
+            var user = GetAccountByUsername(userName);
             return user?.Favorites ?? new List<string>();
+        }
+
+        public List<UserAccount> GetAccounts()
+        {
+            return new List<UserAccount>(users);
         }
     }
 }

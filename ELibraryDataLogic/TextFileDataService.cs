@@ -1,85 +1,84 @@
-﻿using PFinderCommon;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using PFinderCommon;
 
 namespace ELibraryDataLogic
 {
     public class TextFileDataService : IFinderDataService
     {
-        private readonly string filePath = "accounts.txt";
-        private List<UserAccount> accounts = new List<UserAccount>();
+        private readonly string filePath;
+        private List<UserAccount> users = new();
 
-        public TextFileDataService() => LoadFromFile();
+        public TextFileDataService(string filePath)
+        {
+            this.filePath = filePath;
+            LoadFromFile();
+        }
 
         private void LoadFromFile()
         {
+            users = new List<UserAccount>();
             if (!File.Exists(filePath)) return;
 
             var lines = File.ReadAllLines(filePath);
             foreach (var line in lines)
             {
                 var parts = line.Split('|');
-                if (parts.Length < 3) continue;
-
-                var favorites = new List<string>();
-                if (parts.Length > 3)
-                    favorites.AddRange(parts[3].Split(',', StringSplitOptions.RemoveEmptyEntries));
-
-                accounts.Add(new UserAccount
+                if (parts.Length >= 3)
                 {
-                    UserName = parts[0],
-                    Password = parts[1],
-                    Age = int.Parse(parts[2]),
-                    Favorites = favorites
-                });
+                    users.Add(new UserAccount
+                    {
+                        UserName = parts[0],
+                        Password = parts[1],
+                        Favorites = parts[2].Split(',', StringSplitOptions.RemoveEmptyEntries).ToList()
+                    });
+                }
             }
         }
 
         private void SaveToFile()
         {
-            var lines = new List<string>();
-            foreach (var acc in accounts)
-            {
-                string favs = string.Join(",", acc.Favorites);
-                lines.Add($"{acc.UserName}|{acc.Password}|{acc.Age}|{favs}");
-            }
+            var lines = users.Select(u =>
+                $"{u.UserName}|{u.Password}|{string.Join(",", u.Favorites)}");
             File.WriteAllLines(filePath, lines);
         }
 
-        public List<UserAccount> GetAccounts() => accounts;
+        public UserAccount? GetAccountByUsername(string username) =>
+            users.FirstOrDefault(u => u.UserName == username);
 
-        public UserAccount GetUser(string userName) =>
-            accounts.Find(u => u.UserName == userName);
-
-        public void CreateAccount(UserAccount userAccount)
+        public void CreateAccount(UserAccount user)
         {
-            if (GetUser(userAccount.UserName) != null) return;
-            accounts.Add(userAccount);
-            SaveToFile();
+            if (users.All(u => u.UserName != user.UserName))
+            {
+                users.Add(user);
+                SaveToFile();
+            }
         }
 
-        public void UpdateAccount(UserAccount userAccount)
+        public void UpdateAccount(UserAccount user)
         {
-            int index = accounts.FindIndex(u => u.UserName == userAccount.UserName);
-            if (index != -1)
+            var existing = GetAccountByUsername(user.UserName);
+            if (existing != null)
             {
-                accounts[index] = userAccount;
+                existing.Password = user.Password;
+                existing.Favorites = user.Favorites;
                 SaveToFile();
             }
         }
 
         public void RemoveAccount(string userName)
         {
-            var account = GetUser(userName);
-            if (account != null)
+            var user = GetAccountByUsername(userName);
+            if (user != null)
             {
-                accounts.Remove(account);
+                users.Remove(user);
                 SaveToFile();
             }
         }
 
-        public bool RegisterAccount(string userName, string password, int age)
+        public bool RegisterAccount(string userName, string password)
         {
             if (IsUserAlreadyRegistered(userName)) return false;
 
@@ -87,22 +86,20 @@ namespace ELibraryDataLogic
             {
                 UserName = userName,
                 Password = password,
-                Age = age,
                 Favorites = new List<string>()
             });
-
             return true;
         }
 
-        public bool IsUserAlreadyRegistered(string userName) =>
-            GetUser(userName) != null;
+        public bool ValidateAccount(string userName, string password) =>
+            GetAccountByUsername(userName)?.Password == password;
 
-        public bool ValidateAccount(string userName, string password, int age) =>
-            accounts.Exists(u => u.UserName == userName && u.Password == password && u.Age == age);
+        public bool IsUserAlreadyRegistered(string userName) =>
+            users.Any(u => u.UserName == userName);
 
         public bool AddFavorite(string userName, string book)
         {
-            var user = GetUser(userName);
+            var user = GetAccountByUsername(userName);
             if (user == null || user.Favorites.Contains(book)) return false;
 
             user.Favorites.Add(book);
@@ -112,7 +109,7 @@ namespace ELibraryDataLogic
 
         public bool RemoveFavorite(string userName, string book)
         {
-            var user = GetUser(userName);
+            var user = GetAccountByUsername(userName);
             if (user == null || !user.Favorites.Contains(book)) return false;
 
             user.Favorites.Remove(book);
@@ -120,10 +117,9 @@ namespace ELibraryDataLogic
             return true;
         }
 
-        public List<string> GetFavorites(string userName)
-        {
-            var user = GetUser(userName);
-            return user?.Favorites ?? new List<string>();
-        }
+        public List<string> GetFavorites(string userName) =>
+            GetAccountByUsername(userName)?.Favorites ?? new List<string>();
+
+        public List<UserAccount> GetAccounts() => users;
     }
 }
