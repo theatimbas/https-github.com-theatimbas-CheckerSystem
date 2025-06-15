@@ -1,161 +1,294 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using ELibraryDataLogic;
 using PFinderCommon;
-using ELibraryDataLogic;
+using System;
+using System.Collections.Generic;
 
-namespace ELibrarySystem
+class Program
 {
-    internal class Program
+    static void Main()
     {
-        static void Main(string[] args)
+        while (true)
         {
-            Console.WriteLine("Welcome to the Pen Finder!");
+            Console.Clear();
+            Console.WriteLine("1. Create Account\n2. Login\n3. Update Password\n4. Exit");
+            var input = Console.ReadLine();
 
-            Registration();
-            if (Login())
+            switch (input)
             {
-                ShowMenu();
+                case "1": Register(); break;
+                case "2": if (Login()) ShowMainMenu(); break;
+                case "3": UpdatePassword(); break;
+                case "4": return;
+                default:
+                    Console.WriteLine("Invalid option. Press any key to try again.");
+                    Console.ReadKey();
+                    break;
             }
         }
+    }
 
-        static void Registration()
+    static void Register()
+    {
+        Console.Clear();
+        Console.Write("Enter username: ");
+        string username = Console.ReadLine()?.Trim();
+        Console.Write("Enter password: ");
+        string password = Console.ReadLine()?.Trim();
+
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
         {
-            string UserAccount = Prompt("Do you already have an account? (yes/no)").ToLower();
-            while (UserAccount != "yes" && UserAccount != "no")
-            {
-                UserAccount = Prompt("Please enter 'yes' or 'no':").ToLower();
-            }
-
-            if (UserAccount == "no")
-            {
-                bool registered = false;
-                while (!registered)
-                {
-                    Console.WriteLine("Register a New User.");
-                    string username = Prompt("Enter Username:");
-                    string password = Prompt("Enter Password:");
-
-                    registered = E_LibraryServices.RegisterAccount(username, password);
-                    Console.WriteLine(registered ? "Registration Successful! You can now login." : "Username already exists or registration failed. Try again.");
-                }
-            }
+            Console.WriteLine("Username and password cannot be blank.");
+            Console.WriteLine("Press any key to return to main menu...");
+            Console.ReadKey();
+            return;
         }
 
-        static bool Login()
+        bool success = E_LibraryServices.RegisterAccount(username, password);
+        Console.WriteLine(success ? "Registration successful." : "Username already exists or invalid input.");
+
+        if (success)
         {
-            Console.WriteLine("Please login to continue.");
-            string loginUsername = Prompt("Username:");
-            string loginPassword = Prompt("Password:");
+            E_LibraryServices.Login(username, password);
+            Console.WriteLine("Auto-logged in after registration.");
+            Console.WriteLine("Press any key to continue...");
+            Console.ReadKey();
+            ShowMainMenu();
+        }
+        else
+        {
+            Console.WriteLine("Press any key to return to main menu...");
+            Console.ReadKey();
+        }
+    }
 
-            if (E_LibraryServices.Login(loginUsername, loginPassword))
-            {
-                Console.WriteLine($"Welcome, {loginUsername}!");
-                return true;
-            }
+    static bool Login()
+    {
+        Console.Clear();
+        Console.Write("Enter username: ");
+        string username = Console.ReadLine()?.Trim();
+        Console.Write("Enter password: ");
+        string password = Console.ReadLine()?.Trim();
 
-            Console.WriteLine("Invalid credentials. Exiting.");
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+        {
+            Console.WriteLine("Username and password cannot be blank.");
+            Console.WriteLine("Press any key to return...");
+            Console.ReadKey();
             return false;
         }
 
-        static void ShowMenu()
+        bool success = E_LibraryServices.Login(username, password);
+        Console.WriteLine(success ? "Login successful." : "Invalid username or password.");
+        Console.WriteLine("Press any key to continue...");
+        Console.ReadKey();
+        return success;
+    }
+
+    static void ShowMainMenu()
+    {
+        while (true)
         {
-            bool exit = false;
-            while (!exit)
-            {
-                Console.WriteLine("\nSelect an option:");
-                Console.WriteLine("1. View My Favorites");
-                Console.WriteLine("2. Add Favorite");
-                Console.WriteLine("3. Remove Favorite");
-                Console.WriteLine("4. Rename Book");
-                Console.WriteLine("0. Logout");
+            Console.Clear();
+            Console.WriteLine("Main Menu");
+            Console.WriteLine("1. View Favorites");
+            Console.WriteLine("2. Remove Favorite");
+            Console.WriteLine("3. Update Password");
+            Console.WriteLine("4. View Genres and Books");
+            Console.WriteLine("5. Search Book by Title");
+            Console.WriteLine("6. Log out");
 
-                string choice = Console.ReadLine()?.Trim();
-                switch (choice)
-                {
-                    case "1": ViewFavorites(); break;
-                    case "2": AddFavorite(); break;
-                    case "3": RemoveFavorite(); break;
-                    case "4": UpdateBook(); break;
-                    case "0":
-                        E_LibraryServices.Logout();
-                        Console.WriteLine("Logged out. Thank you!");
-                        exit = true;
-                        break;
-                    default:
-                        Console.WriteLine("Invalid choice. Try again.");
-                        break;
-                }
-            }
-        }
 
-        static void ViewFavorites()
-        {
-            var favorites = E_LibraryServices.MyFavorites();
-            Console.WriteLine("Your Favorites:");
-            if (favorites.Count == 0)
-            {
-                Console.WriteLine("No Favorites yet.");
-            }
-            else
-            {
-                foreach (var fav in favorites)
-                {
-                    Console.WriteLine("- " + fav);
-                }
-            }
-        }
+            var choice = Console.ReadLine();
 
-        static void AddFavorite()
-        {
-            string book = Prompt("Enter book name to add to Favorites:");
-            if (E_LibraryServices.AddFavorite(book))
+            switch (choice)
             {
-                Console.WriteLine("Favorite added.");
-            }
-            else
-            {
-                Console.WriteLine("Book already in favorites or Invalid.");
-            }
-        }
+                case "1": ViewFavorites(); break;
+                case "2": RemoveFavorite(); break;
+                case "3": UpdatePassword(); break;
+                case "4": SearchBookTitle(); break;
 
-        static void RemoveFavorite()
-        {
-            string book = Prompt("Enter book name to remove from favorites:");
-            if (E_LibraryServices.RemoveFromFavorites(book))
-            {
-                Console.WriteLine("Removed from favorites.");
+                case "5": DisplayGenresAndBooks(); break;
+                case "6":
+                    E_LibraryServices.Logout();
+                    Console.WriteLine("You have been logged out.");
+                    Console.WriteLine("Press any key to return to main menu...");
+                    Console.ReadKey();
+                    return;
+                default:
+                    Console.WriteLine("Invalid option. Press any key to try again...");
+                    Console.ReadKey();
+                    break;
             }
-            else
-            {
-                Console.WriteLine("Book not found in favorites.");
-            }
-        }
-
-        static void UpdateBook()
-        {
-            string oldName = Prompt("Enter old book name:");
-            string newName = Prompt("Enter new book name:");
-
-            if (E_LibraryServices.RenameBookInUser(oldName, newName))
-            {
-                Console.WriteLine("Book renamed successfully.");
-            }
-            else
-            {
-                Console.WriteLine("Rename failed.");
-            }
-        }
-
-        static string Prompt(string message)
-        {
-            Console.Write(message + " ");
-            string input = Console.ReadLine()?.Trim();
-            while (string.IsNullOrEmpty(input))
-            {
-                Console.Write("Input cannot be empty. " + message + " ");
-                input = Console.ReadLine()?.Trim();
-            }
-            return input;
         }
     }
+
+    static void ViewFavorites()
+    {
+        Console.Clear();
+        Console.WriteLine("Your Favorites:");
+        var favorites = E_LibraryServices.MyFavorites();
+
+        if (favorites.Count == 0)
+        {
+            Console.WriteLine("No favorites yet.");
+        }
+        else
+        {
+            foreach (var book in favorites)
+                Console.WriteLine("- " + book);
+        }
+
+        Console.WriteLine("Press any key to return...");
+        Console.ReadKey();
+    }
+
+    static void RemoveFavorite()
+    {
+        Console.Clear();
+        Console.Write("Enter book title to remove: ");
+        string title = Console.ReadLine()?.Trim();
+
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            Console.WriteLine("Book title cannot be blank.");
+        }
+        else if (E_LibraryServices.RemoveFavorites(title))
+        {
+            Console.WriteLine("Book removed from favorites.");
+        }
+        else
+        {
+            Console.WriteLine("Book not found in your favorites.");
+        }
+
+        Console.WriteLine("Press any key to return...");
+        Console.ReadKey();
+    }
+
+    static void UpdatePassword()
+    {
+        Console.Clear();
+        Console.Write("Enter new password: ");
+        string newPassword = Console.ReadLine()?.Trim();
+
+        if (string.IsNullOrWhiteSpace(newPassword))
+        {
+            Console.WriteLine("Password cannot be blank.");
+        }
+        else
+        {
+            E_LibraryServices.UpdatePassword(newPassword);
+            Console.WriteLine("Password Updated Successfully.");
+        }
+
+        Console.WriteLine("Press any key to return...");
+        Console.ReadKey();
+    }
+
+    static void DisplayGenresAndBooks()
+    {
+        Console.Clear();
+        Console.WriteLine("Available Genres:");
+
+        var genres = E_LibraryServices.GetGenres();
+
+        for (int i = 0; i < genres.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. {genres[i]}");
+        }
+
+        Console.Write("Select a genre by number: ");
+        if (int.TryParse(Console.ReadLine(), out int genreIndex) && genreIndex >= 1 && genreIndex <= genres.Count)
+        {
+            string selectedGenre = genres[genreIndex - 1];
+            var books = E_LibraryServices.GetBooksByGenre(selectedGenre);
+
+            Console.WriteLine($"\nBooks under '{selectedGenre}':");
+            foreach (var book in books)
+                Console.WriteLine("- " + book);
+
+            Console.Write("\nWould you like to add a book to favorites? (yes/no): ");
+            var addChoice = Console.ReadLine()?.Trim().ToLower();
+
+            if (addChoice == "yes")
+            {
+                Console.Write("Enter the Exact Book Title To Add: ");
+                var bookToAdd = Console.ReadLine()?.Trim();
+
+                if (string.IsNullOrWhiteSpace(bookToAdd))
+                {
+                    Console.WriteLine("Book Title Cannot be Blank.");
+                }
+                else if (E_LibraryServices.AddFavorite(bookToAdd))
+                {
+                    Console.WriteLine("Book Added to Favorites.");
+                }
+                else
+                {
+                    Console.WriteLine("Book Could Not be Added (aAready in Favorites or Doesn't Exist).");
+                }
+            }
+        }
+        else
+        {
+            Console.WriteLine("Invalid Genre Selection.");
+        }
+
+        Console.WriteLine("Press Any Key to Return...");
+        Console.ReadKey();
+    }
+
+    static void SearchBookTitle()
+{
+    Console.Clear();
+    Console.Write("Enter Book Title or Part of it to Search: ");
+    string query = Console.ReadLine()?.Trim();
+
+    if (string.IsNullOrWhiteSpace(query))
+    {
+        Console.WriteLine("Search query cannot be empty.");
+        Console.WriteLine("Press Any Key to Return...");
+        Console.ReadKey();
+        return;
+    }
+
+    var matchingBooks = E_LibraryServices.SearchBooksByTitle(query);
+
+    if (matchingBooks.Count == 0)
+    {
+        Console.WriteLine("No Matching Books Found.");
+    }
+    else
+    {
+        Console.WriteLine("Matching Books:");
+        foreach (var book in matchingBooks)
+        {
+            Console.WriteLine("- " + book);
+        }
+
+        Console.Write("\nWould you like to add one to favorites? (yes/no): ");
+        var choice = Console.ReadLine()?.Trim().ToLower();
+        if (choice == "yes")
+        {
+            Console.Write("Enter the Exact Book Title to Add: ");
+            var titleToAdd = Console.ReadLine()?.Trim();
+            if (string.IsNullOrWhiteSpace(titleToAdd))
+            {
+                Console.WriteLine("Book Title Cannot be Blank.");
+            }
+            else if (E_LibraryServices.AddFavorite(titleToAdd))
+            {
+                Console.WriteLine("Book Added to Favorites.");
+            }
+            else
+            {
+                Console.WriteLine("Could Not Add Book (Already in Favorites or doesn't exist).");
+            }
+        }
+    }
+
+    Console.WriteLine("Press any key to return...");
+    Console.ReadKey();
+}
+
 }

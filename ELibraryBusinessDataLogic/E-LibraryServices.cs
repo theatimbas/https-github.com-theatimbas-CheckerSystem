@@ -5,8 +5,7 @@ using ELibraryDataLogic;
 
 public static class E_LibraryServices
 {
-    private static IFinderDataService dataService = new PenFinderDB();
-
+    private static IFinderDataService dataService = new PenFinderDB(); // You can replace with JsonDataFileService, etc.
     private static UserAccount currentUser = null;
 
     public static bool RegisterAccount(string username, string password)
@@ -35,6 +34,7 @@ public static class E_LibraryServices
         }
         return false;
     }
+
     public static void Logout()
     {
         currentUser = null;
@@ -42,46 +42,9 @@ public static class E_LibraryServices
 
     public static List<string> MyFavorites()
     {
-        return currentUser?.Favorites ?? new List<string>();
-    }
-
-    public static bool RenameBookInUser(string oldName, string newName)
-    {
-        if (currentUser?.Favorites == null) return false;
-
-        int index = currentUser.Favorites.IndexOf(oldName);
-        if (index >= 0 && !currentUser.Favorites.Contains(newName))
-        {
-            currentUser.Favorites[index] = newName;
-            dataService.UpdateAccount(currentUser);
-            return true;
-        }
-        return false;
-    }
-
-    public static bool RemoveBookFromUser(string book)
-    {
-        if (currentUser?.Favorites != null && currentUser.Favorites.Contains(book))
-        {
-            currentUser.Favorites.Remove(book);
-            dataService.UpdateAccount(currentUser);
-            return true;
-        }
-        return false;
-    }
-
-    public static bool AddBookToUser(string book)
-    {
-        if (currentUser == null) return false;
-
-        currentUser.Favorites ??= new List<string>();
-        if (!currentUser.Favorites.Contains(book))
-        {
-            currentUser.Favorites.Add(book);
-            dataService.UpdateAccount(currentUser);
-            return true;
-        }
-        return false;
+        if (currentUser == null) return new List<string>();
+        currentUser.Favorites = dataService.GetFavorites(currentUser.UserName);
+        return currentUser.Favorites;
     }
 
     public static bool AddFavorite(string book)
@@ -89,8 +52,67 @@ public static class E_LibraryServices
         return AddBookToUser(book);
     }
 
-    public static bool RemoveFromFavorites(string book)
+    public static bool RemoveFavorites(string book)
     {
         return RemoveBookFromUser(book);
     }
+
+    public static void UpdatePassword(string newPassword)
+    {
+        if (currentUser != null)
+        {
+            currentUser.Password = newPassword;
+            dataService.UpdateAccount(currentUser);
+        }
+    }
+
+    public static List<string> GetGenres()
+    {
+        return dataService.GetGenres();
+    }
+
+    public static List<string> GetBooksByGenre(string genre)
+    {
+        return dataService.GetBooksByGenre(genre);
+    }
+
+    // Internal helpers
+    private static bool AddBookToUser(string book)
+    {
+        if (currentUser == null) return false;
+
+        // Check if book exists in all genres before adding
+        bool exists = false;
+        var genres = dataService.GetGenres();
+        foreach (var genre in genres)
+        {
+            var books = dataService.GetBooksByGenre(genre);
+            if (books.Contains(book))
+            {
+                exists = true;
+                break;
+            }
+        }
+
+        if (!exists) return false;
+
+        bool added = dataService.AddFavorite(currentUser.UserName, book);
+        if (added && !currentUser.Favorites.Contains(book))
+            currentUser.Favorites.Add(book);
+        return added;
+    }
+
+    private static bool RemoveBookFromUser(string book)
+    {
+        if (currentUser == null) return false;
+        bool removed = dataService.RemoveFavorite(currentUser.UserName, book);
+        if (removed)
+            currentUser.Favorites.Remove(book);
+        return removed;
+    }
+    public static List<string> SearchBooksByTitle(string keyword)
+    {
+        return dataService.SearchBooksTitle(keyword);
+    }
+
 }

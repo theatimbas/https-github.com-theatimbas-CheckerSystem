@@ -11,6 +11,9 @@ public interface IFinderDataService
     bool ValidateAccount(string userName, string password);
     bool IsUserAlreadyRegistered(string userName);
     List<string> GetFavorites(string userName);
-    bool AddFavorite(string userName, string book);
-    bool RemoveFavorite(string userName, string book);
+    bool AddFavorite(string userName, string bookTitle);
+    bool RemoveFavorite(string userName, string bookTitle);
+    List<string> GetGenres();
+    List<string> GetBooksByGenre(string genre);
+    List<string> SearchBooksTitle(string keyword);
 }

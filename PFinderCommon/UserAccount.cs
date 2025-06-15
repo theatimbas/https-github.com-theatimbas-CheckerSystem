@@ -1,4 +1,7 @@
-﻿namespace PFinderCommon
+﻿using System;
+using System.Collections.Generic;
+
+namespace PFinderCommon
 {
     public class UserAccount
     {

@@ -8,159 +8,265 @@ namespace ELibraryDataLogic
     public class PenFinderDB : IFinderDataService
     {
         private static readonly string connectionString =
-            "Data Source=desktop-781f9v1\\SQLEXPRESS;Initial Catalog=DBPenFinder;Integrated Security=True;TrustServerCertificate=True;";
-
-        public bool RegisterAccount(string userName, string password)
-        {
-            if (IsUserAlreadyRegistered(userName))
-                return false;
-
-            using var connection = new SqlConnection(connectionString);
-            var cmd = new SqlCommand(
-                "INSERT INTO UserAccounts (UserName, Password) VALUES (@UserName, @Password)", connection);
-            cmd.Parameters.AddWithValue("@UserName", userName);
-            cmd.Parameters.AddWithValue("@Password", password);
-            connection.Open();
-            cmd.ExecuteNonQuery();
-
-            return true;
-        }
-
-        public UserAccount? GetAccountByUsername(string userName)
-        {
-            using var connection = new SqlConnection(connectionString);
-            var cmd = new SqlCommand("SELECT * FROM UserAccounts WHERE UserName = @UserName", connection);
-            cmd.Parameters.AddWithValue("@UserName", userName);
-            connection.Open();
-
-            using var reader = cmd.ExecuteReader();
-            if (reader.Read())
-            {
-                return new UserAccount
-                {
-                    UserName = reader["UserName"]?.ToString() ?? string.Empty,
-                    Password = reader["Password"]?.ToString() ?? string.Empty,
-                    Favorites = GetFavorites(userName)
-                };
-            }
-            return null;
-        }
-
-        public void UpdateAccount(UserAccount account)
-        {
-            using var connection = new SqlConnection(connectionString);
-            var cmd = new SqlCommand(
-                "UPDATE UserAccounts SET Password = @Password WHERE UserName = @UserName", connection);
-            cmd.Parameters.AddWithValue("@Password", account.Password);
-            cmd.Parameters.AddWithValue("@UserName", account.UserName);
-            connection.Open();
-            cmd.ExecuteNonQuery();
-        }
-
-        public void CreateAccount(UserAccount userAccount)
-        {
-            RegisterAccount(userAccount.UserName, userAccount.Password);
-            // Save favorites if your schema allows (not implemented here)
-        }
-
-        public void RemoveAccount(string userName)
-        {
-            using var connection = new SqlConnection(connectionString);
-            connection.Open();
-            using var transaction = connection.BeginTransaction();
-
-            var deleteFavoritesCmd = new SqlCommand("DELETE FROM UserFavorites WHERE UserName = @UserName", connection, transaction);
-            deleteFavoritesCmd.Parameters.AddWithValue("@UserName", userName);
-            deleteFavoritesCmd.ExecuteNonQuery();
-
-            var deleteUserCmd = new SqlCommand("DELETE FROM UserAccounts WHERE UserName = @UserName", connection, transaction);
-            deleteUserCmd.Parameters.AddWithValue("@UserName", userName);
-            deleteUserCmd.ExecuteNonQuery();
-
-            transaction.Commit();
-        }
-
-        public bool ValidateAccount(string userName, string password)
-        {
-            using var connection = new SqlConnection(connectionString);
-            var cmd = new SqlCommand("SELECT COUNT(*) FROM UserAccounts WHERE UserName = @UserName AND Password = @Password", connection);
-            cmd.Parameters.AddWithValue("@UserName", userName);
-            cmd.Parameters.AddWithValue("@Password", password);
-            connection.Open();
-
-            int count = (int)cmd.ExecuteScalar();
-            return count > 0;
-        }
-
-        public bool IsUserAlreadyRegistered(string userName)
-        {
-            using var connection = new SqlConnection(connectionString);
-            var cmd = new SqlCommand("SELECT COUNT(*) FROM UserAccounts WHERE UserName = @UserName", connection);
-            cmd.Parameters.AddWithValue("@UserName", userName);
-            connection.Open();
-
-            int count = (int)cmd.ExecuteScalar();
-            return count > 0;
-        }
-
-        public List<string> GetFavorites(string userName)
-        {
-            var favorites = new List<string>();
-            using var connection = new SqlConnection(connectionString);
-            var cmd = new SqlCommand("SELECT BookTitle FROM UserFavorites WHERE UserName = @UserName", connection);
-            cmd.Parameters.AddWithValue("@UserName", userName);
-            connection.Open();
-
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-            {
-                favorites.Add(reader["BookTitle"]?.ToString() ?? string.Empty);
-            }
-            return favorites;
-        }
+            "Data Source=desktop-781f9v1\\SQLEXPRESS;Initial Catalog=PenFinderDB;Integrated Security=True;TrustServerCertificate=True;";
 
         public List<UserAccount> GetAccounts()
         {
             var accounts = new List<UserAccount>();
-            using var connection = new SqlConnection(connectionString);
-            var cmd = new SqlCommand("SELECT * FROM UserAccounts", connection);
-            connection.Open();
-
+            using var conn = new SqlConnection(connectionString);
+            using var cmd = new SqlCommand("SELECT UserName, Password FROM UserAccounts", conn);
+            conn.Open();
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
+                string userName = reader.GetString(0);
                 accounts.Add(new UserAccount
                 {
-                    UserName = reader["UserName"]?.ToString() ?? string.Empty,
-                    Password = reader["Password"]?.ToString() ?? string.Empty,
-                    Favorites = GetFavorites(reader["UserName"]?.ToString() ?? string.Empty)
+                    UserName = userName,
+                    Password = reader.GetString(1),
+                    Favorites = GetFavorites(userName)
                 });
             }
             return accounts;
         }
 
-        public bool AddFavorite(string userName, string book)
+        public UserAccount GetAccountByUsername(string userName)
         {
-            var favs = GetFavorites(userName);
-            if (favs.Contains(book))
+            if (string.IsNullOrWhiteSpace(userName))
+                return null;
+
+            using var conn = new SqlConnection(connectionString);
+            using var cmd = new SqlCommand("SELECT UserName, Password FROM UserAccounts WHERE UserName = @UserName", conn);
+            cmd.Parameters.AddWithValue("@UserName", userName.Trim());
+            conn.Open();
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+            {
+                string uname = reader.GetString(0);
+                return new UserAccount
+                {
+                    UserName = uname,
+                    Password = reader.GetString(1),
+                    Favorites = GetFavorites(uname)
+                };
+            }
+            return null;
+        }
+
+        public void CreateAccount(UserAccount userAccount)
+        {
+            RegisterAccount(userAccount.UserName, userAccount.Password);
+        }
+
+        public bool RegisterAccount(string userName, string password)
+        {
+            if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(password))
                 return false;
 
-            using var connection = new SqlConnection(connectionString);
-            var cmd = new SqlCommand("INSERT INTO UserFavorites (UserName, BookTitle) VALUES (@UserName, @BookTitle)", connection);
+            userName = userName.Trim();
+            password = password.Trim();
+
+            if (IsUserAlreadyRegistered(userName))
+                return false;
+
+            using var conn = new SqlConnection(connectionString);
+            using var cmd = new SqlCommand(
+                "INSERT INTO UserAccounts (UserName, Password) VALUES (@UserName, @Password)", conn);
+
             cmd.Parameters.AddWithValue("@UserName", userName);
-            cmd.Parameters.AddWithValue("@BookTitle", book);
-            connection.Open();
+            cmd.Parameters.AddWithValue("@Password", password);
+            conn.Open();
+            return cmd.ExecuteNonQuery() > 0;
+        }
+
+        public void UpdateAccount(UserAccount account)
+        {
+            if (account == null) return;
+
+            using var conn = new SqlConnection(connectionString);
+            using var cmd = new SqlCommand(
+                "UPDATE UserAccounts SET Password = @Password WHERE UserName = @UserName", conn);
+
+            cmd.Parameters.AddWithValue("@Password", account.Password.Trim());
+            cmd.Parameters.AddWithValue("@UserName", account.UserName.Trim());
+            conn.Open();
+            cmd.ExecuteNonQuery();
+        }
+
+        public void RemoveAccount(string userName)
+        {
+            if (string.IsNullOrWhiteSpace(userName))
+                return;
+
+            userName = userName.Trim();
+
+            using var conn = new SqlConnection(connectionString);
+            conn.Open();
+            using var tx = conn.BeginTransaction();
+
+            using var deleteFavs = new SqlCommand(
+                "DELETE FROM UserFavorites WHERE UserName = @UserName", conn, tx);
+            deleteFavs.Parameters.AddWithValue("@UserName", userName);
+            deleteFavs.ExecuteNonQuery();
+
+            using var deleteUser = new SqlCommand(
+                "DELETE FROM UserAccounts WHERE UserName = @UserName", conn, tx);
+            deleteUser.Parameters.AddWithValue("@UserName", userName);
+            deleteUser.ExecuteNonQuery();
+
+            tx.Commit();
+        }
+
+        public bool ValidateAccount(string userName, string password)
+        {
+            if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(password))
+                return false;
+
+            using var conn = new SqlConnection(connectionString);
+            using var cmd = new SqlCommand(
+                "SELECT COUNT(*) FROM UserAccounts WHERE UserName = @UserName AND Password = @Password", conn);
+
+            cmd.Parameters.AddWithValue("@UserName", userName.Trim());
+            cmd.Parameters.AddWithValue("@Password", password.Trim());
+            conn.Open();
+
+            return ((int)cmd.ExecuteScalar()) > 0;
+        }
+
+        public bool IsUserAlreadyRegistered(string userName)
+        {
+            if (string.IsNullOrWhiteSpace(userName))
+                return false;
+
+            using var conn = new SqlConnection(connectionString);
+            using var cmd = new SqlCommand(
+                "SELECT COUNT(*) FROM UserAccounts WHERE UserName = @UserName", conn);
+
+            cmd.Parameters.AddWithValue("@UserName", userName.Trim());
+            conn.Open();
+
+            return ((int)cmd.ExecuteScalar()) > 0;
+        }
+
+        public List<string> GetFavorites(string userName)
+        {
+            var list = new List<string>();
+
+            if (string.IsNullOrWhiteSpace(userName))
+                return list;
+
+            using var conn = new SqlConnection(connectionString);
+            using var cmd = new SqlCommand(
+                "SELECT BookTitle FROM UserFavorites WHERE UserName = @UserName", conn);
+
+            cmd.Parameters.AddWithValue("@UserName", userName.Trim());
+            conn.Open();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                list.Add(reader.GetString(0));
+            }
+
+            return list;
+        }
+
+        public bool AddFavorite(string userName, string book)
+        {
+            if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(book))
+                return false;
+
+            var existing = GetFavorites(userName.Trim());
+            if (existing.Contains(book.Trim()))
+                return false;
+
+            using var conn = new SqlConnection(connectionString);
+            using var cmd = new SqlCommand(
+                "INSERT INTO UserFavorites (UserName, BookTitle) VALUES (@UserName, @BookTitle)", conn);
+
+            cmd.Parameters.AddWithValue("@UserName", userName.Trim());
+            cmd.Parameters.AddWithValue("@BookTitle", book.Trim());
+            conn.Open();
+
             return cmd.ExecuteNonQuery() > 0;
         }
 
         public bool RemoveFavorite(string userName, string book)
         {
-            using var connection = new SqlConnection(connectionString);
-            var cmd = new SqlCommand("DELETE FROM UserFavorites WHERE UserName = @UserName AND BookTitle = @BookTitle", connection);
-            cmd.Parameters.AddWithValue("@UserName", userName);
-            cmd.Parameters.AddWithValue("@BookTitle", book);
-            connection.Open();
+            if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(book))
+                return false;
+
+            using var conn = new SqlConnection(connectionString);
+            using var cmd = new SqlCommand(
+                "DELETE FROM UserFavorites WHERE UserName = @UserName AND BookTitle = @BookTitle", conn);
+
+            cmd.Parameters.AddWithValue("@UserName", userName.Trim());
+            cmd.Parameters.AddWithValue("@BookTitle", book.Trim());
+            conn.Open();
+
             return cmd.ExecuteNonQuery() > 0;
         }
+
+        public List<string> GetGenres()
+        {
+            var list = new List<string>();
+
+            using var conn = new SqlConnection(connectionString);
+            using var cmd = new SqlCommand("SELECT Name FROM Genres", conn);
+            conn.Open();
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                list.Add(reader.GetString(0));
+            }
+
+            return list;
+        }
+
+        public List<string> GetBooksByGenre(string genre)
+        {
+            var list = new List<string>();
+
+            if (string.IsNullOrWhiteSpace(genre))
+                return list;
+
+            using var conn = new SqlConnection(connectionString);
+            using var cmd = new SqlCommand(@"
+                SELECT b.Title 
+                FROM Books b
+                JOIN Genres g ON b.GenreId = g.Id
+                WHERE g.Name = @Genre", conn);
+
+            cmd.Parameters.AddWithValue("@Genre", genre.Trim());
+            conn.Open();
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                list.Add(reader.GetString(0));
+            }
+
+            return list;
+        }
+        public List<string> SearchBooksTitle(string keyword)
+        {
+            List<string> result = new List<string>();
+            using (var connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+                var command = new SqlCommand("SELECT Title FROM Books WHERE Title LIKE @search", connection);
+                command.Parameters.AddWithValue("@search", "%" + keyword + "%");
+
+                using (var reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        result.Add(reader.GetString(0));
+                    }
+                }
+            }
+            return result;
+        }
+
     }
 }
