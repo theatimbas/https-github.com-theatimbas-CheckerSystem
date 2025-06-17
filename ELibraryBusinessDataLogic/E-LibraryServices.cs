@@ -5,31 +5,37 @@ using ELibraryDataLogic;
 
 public static class E_LibraryServices
 {
-    private static IFinderDataService dataService = new PenFinderDB(); // You can replace with JsonDataFileService, etc.
-    private static UserAccount currentUser = null;
+    private static IFinderDataService dataService = new PenFinderDB();
+    private static UserAccount CurrentUser = null;
 
-    public static bool RegisterAccount(string username, string password)
+    public static bool RegisterAccount(string UserName, string Password)
     {
-        if (dataService.GetAccountByUsername(username) != null)
+        if (string.IsNullOrWhiteSpace(UserName) || string.IsNullOrWhiteSpace(Password))
             return false;
 
-        var newUser = new UserAccount
+        if (dataService.GetAccountByUsername(UserName) != null)
+            return false;
+
+        var NewUser = new UserAccount
         {
-            UserName = username,
-            Password = password,
-            Favorites = new List<string>(),
+            UserName = UserName,
+            Password = Password,
+            Favorites = new List<string>()
         };
 
-        dataService.CreateAccount(newUser);
+        dataService.CreateAccount(NewUser);
         return true;
     }
 
-    public static bool Login(string username, string password)
+    public static bool Login(string UserName, string Password)
     {
-        var user = dataService.GetAccountByUsername(username);
-        if (user != null && user.Password == password)
+        if (string.IsNullOrWhiteSpace(UserName) || string.IsNullOrWhiteSpace(Password))
+            return false;
+
+        var user = dataService.GetAccountByUsername(UserName);
+        if (user != null && user.Password == Password)
         {
-            currentUser = user;
+            CurrentUser = user;
             return true;
         }
         return false;
@@ -37,14 +43,14 @@ public static class E_LibraryServices
 
     public static void Logout()
     {
-        currentUser = null;
+        CurrentUser = null;
     }
 
     public static List<string> MyFavorites()
     {
-        if (currentUser == null) return new List<string>();
-        currentUser.Favorites = dataService.GetFavorites(currentUser.UserName);
-        return currentUser.Favorites;
+        if (CurrentUser == null) return new List<string>();
+        CurrentUser.Favorites = dataService.GetFavorites(CurrentUser.UserName);
+        return CurrentUser.Favorites;
     }
 
     public static bool AddFavorite(string book)
@@ -57,12 +63,12 @@ public static class E_LibraryServices
         return RemoveBookFromUser(book);
     }
 
-    public static void UpdatePassword(string newPassword)
+    public static void UpdatePassword(string NewPassword)
     {
-        if (currentUser != null)
+        if (CurrentUser != null && !string.IsNullOrWhiteSpace(NewPassword))
         {
-            currentUser.Password = newPassword;
-            dataService.UpdateAccount(currentUser);
+            CurrentUser.Password = NewPassword;
+            dataService.UpdateAccount(CurrentUser);
         }
     }
 
@@ -76,43 +82,54 @@ public static class E_LibraryServices
         return dataService.GetBooksByGenre(genre);
     }
 
-    // Internal helpers
+    public static List<string> SearchBooksByTitle(string KeyWord)
+    {
+        if (string.IsNullOrWhiteSpace(KeyWord)) return new List<string>();
+        return dataService.SearchBooksTitle(KeyWord);
+    }
+    public static bool DeleteAccount()
+    {
+        if (CurrentUser == null)
+            return false;
+
+        string UserName = CurrentUser.UserName;
+        bool DeletedAccount = dataService.DeleteAccount(UserName);
+        if (DeletedAccount)
+            CurrentUser = null;
+        return DeletedAccount;
+    }
+
     private static bool AddBookToUser(string book)
     {
-        if (currentUser == null) return false;
+        if (CurrentUser == null || string.IsNullOrWhiteSpace(book)) return false;
 
-        // Check if book exists in all genres before adding
-        bool exists = false;
-        var genres = dataService.GetGenres();
-        foreach (var genre in genres)
+        bool BookExist = false;
+        foreach (var genre in dataService.GetGenres())
         {
             var books = dataService.GetBooksByGenre(genre);
             if (books.Contains(book))
             {
-                exists = true;
+                BookExist = true;
                 break;
             }
         }
+        if (!BookExist) return false;
 
-        if (!exists) return false;
+        bool AddedBook = dataService.AddFavorite(CurrentUser.UserName, book);
+        if (AddedBook && !CurrentUser.Favorites.Contains(book))
+            CurrentUser.Favorites.Add(book);
 
-        bool added = dataService.AddFavorite(currentUser.UserName, book);
-        if (added && !currentUser.Favorites.Contains(book))
-            currentUser.Favorites.Add(book);
-        return added;
+        return AddedBook;
     }
 
     private static bool RemoveBookFromUser(string book)
     {
-        if (currentUser == null) return false;
-        bool removed = dataService.RemoveFavorite(currentUser.UserName, book);
-        if (removed)
-            currentUser.Favorites.Remove(book);
-        return removed;
-    }
-    public static List<string> SearchBooksByTitle(string keyword)
-    {
-        return dataService.SearchBooksTitle(keyword);
-    }
+        if (CurrentUser == null || string.IsNullOrWhiteSpace(book)) return false;
 
+        bool RemovedBook = dataService.RemoveFavorite(CurrentUser.UserName, book);
+        if (RemovedBook)
+            CurrentUser.Favorites.Remove(book);
+
+        return RemovedBook;
+    }
 }

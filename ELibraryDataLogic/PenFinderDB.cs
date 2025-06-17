@@ -19,62 +19,63 @@ namespace ELibraryDataLogic
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
-                string userName = reader.GetString(0);
+                string UserName = reader.GetString(0);
                 accounts.Add(new UserAccount
                 {
-                    UserName = userName,
+                    UserName = UserName,
                     Password = reader.GetString(1),
-                    Favorites = GetFavorites(userName)
+                    Favorites = GetFavorites(UserName)
                 });
             }
             return accounts;
         }
 
-        public UserAccount GetAccountByUsername(string userName)
+        public UserAccount? GetAccountByUsername(string UserName)
         {
-            if (string.IsNullOrWhiteSpace(userName))
+            if (string.IsNullOrWhiteSpace(UserName))
                 return null;
+
+            UserName = UserName.Trim();
 
             using var conn = new SqlConnection(connectionString);
             using var cmd = new SqlCommand("SELECT UserName, Password FROM UserAccounts WHERE UserName = @UserName", conn);
-            cmd.Parameters.AddWithValue("@UserName", userName.Trim());
+            cmd.Parameters.AddWithValue("@UserName", UserName);
             conn.Open();
             using var reader = cmd.ExecuteReader();
             if (reader.Read())
             {
-                string uname = reader.GetString(0);
                 return new UserAccount
                 {
-                    UserName = uname,
+                    UserName = reader.GetString(0),
                     Password = reader.GetString(1),
-                    Favorites = GetFavorites(uname)
+                    Favorites = GetFavorites(UserName)
                 };
             }
             return null;
         }
 
-        public void CreateAccount(UserAccount userAccount)
+        public void CreateAccount(UserAccount UserAccount)
         {
-            RegisterAccount(userAccount.UserName, userAccount.Password);
+            RegisterAccount(UserAccount.UserName, UserAccount.Password);
         }
 
-        public bool RegisterAccount(string userName, string password)
+        public bool RegisterAccount(string UserName, string Password)
         {
-            if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(password))
+            if (string.IsNullOrWhiteSpace(UserName) || string.IsNullOrWhiteSpace(Password))
                 return false;
 
-            userName = userName.Trim();
-            password = password.Trim();
+            UserName = UserName.Trim();
+            Password = Password.Trim();
 
-            if (IsUserAlreadyRegistered(userName))
+            if (IsUserAlreadyRegistered(UserName))
                 return false;
 
             using var conn = new SqlConnection(connectionString);
             using var cmd = new SqlCommand(
                 "INSERT INTO UserAccounts (UserName, Password) VALUES (@UserName, @Password)", conn);
 
-            cmd.Parameters.AddWithValue("@UserName", userName);
-            cmd.Parameters.AddWithValue("@Password", password);
+            cmd.Parameters.AddWithValue("@UserName", UserName);
+            cmd.Parameters.AddWithValue("@Password", Password);
             conn.Open();
             return cmd.ExecuteNonQuery() > 0;
         }
@@ -93,10 +94,10 @@ namespace ELibraryDataLogic
             cmd.ExecuteNonQuery();
         }
 
-        public void RemoveAccount(string userName)
+        public bool DeleteAccount(string userName)
         {
             if (string.IsNullOrWhiteSpace(userName))
-                return;
+                return false;
 
             userName = userName.Trim();
 
@@ -104,17 +105,26 @@ namespace ELibraryDataLogic
             conn.Open();
             using var tx = conn.BeginTransaction();
 
-            using var deleteFavs = new SqlCommand(
-                "DELETE FROM UserFavorites WHERE UserName = @UserName", conn, tx);
-            deleteFavs.Parameters.AddWithValue("@UserName", userName);
-            deleteFavs.ExecuteNonQuery();
+            try
+            {
+                using var deleteFavs = new SqlCommand(
+                    "DELETE FROM UserFavorites WHERE UserName = @UserName", conn, tx);
+                deleteFavs.Parameters.AddWithValue("@UserName", userName);
+                deleteFavs.ExecuteNonQuery();
 
-            using var deleteUser = new SqlCommand(
-                "DELETE FROM UserAccounts WHERE UserName = @UserName", conn, tx);
-            deleteUser.Parameters.AddWithValue("@UserName", userName);
-            deleteUser.ExecuteNonQuery();
+                using var deleteUser = new SqlCommand(
+                    "DELETE FROM UserAccounts WHERE UserName = @UserName", conn, tx);
+                deleteUser.Parameters.AddWithValue("@UserName", userName);
+                int affectedRows = deleteUser.ExecuteNonQuery();
 
-            tx.Commit();
+                tx.Commit();
+                return affectedRows > 0;
+            }
+            catch
+            {
+                tx.Rollback();
+                return false;
+            }
         }
 
         public bool ValidateAccount(string userName, string password)
@@ -157,7 +167,7 @@ namespace ELibraryDataLogic
 
             using var conn = new SqlConnection(connectionString);
             using var cmd = new SqlCommand(
-                "SELECT BookTitle FROM UserFavorites WHERE UserName = @UserName", conn);
+                "SELECT BookTitle FROM UserFavorites WHERE UserName = @UserName", conn);  // ✅ Fixed column name
 
             cmd.Parameters.AddWithValue("@UserName", userName.Trim());
             conn.Open();
@@ -175,16 +185,19 @@ namespace ELibraryDataLogic
             if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(book))
                 return false;
 
-            var existing = GetFavorites(userName.Trim());
-            if (existing.Contains(book.Trim()))
+            userName = userName.Trim();
+            book = book.Trim();
+
+            var existing = GetFavorites(userName);
+            if (existing.Contains(book))
                 return false;
 
             using var conn = new SqlConnection(connectionString);
             using var cmd = new SqlCommand(
                 "INSERT INTO UserFavorites (UserName, BookTitle) VALUES (@UserName, @BookTitle)", conn);
 
-            cmd.Parameters.AddWithValue("@UserName", userName.Trim());
-            cmd.Parameters.AddWithValue("@BookTitle", book.Trim());
+            cmd.Parameters.AddWithValue("@UserName", userName);
+            cmd.Parameters.AddWithValue("@BookTitle", book);
             conn.Open();
 
             return cmd.ExecuteNonQuery() > 0;
@@ -248,25 +261,26 @@ namespace ELibraryDataLogic
 
             return list;
         }
+
         public List<string> SearchBooksTitle(string keyword)
         {
             List<string> result = new List<string>();
-            using (var connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                var command = new SqlCommand("SELECT Title FROM Books WHERE Title LIKE @search", connection);
-                command.Parameters.AddWithValue("@search", "%" + keyword + "%");
 
-                using (var reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        result.Add(reader.GetString(0));
-                    }
-                }
+            if (string.IsNullOrWhiteSpace(keyword))
+                return result;
+
+            using var connection = new SqlConnection(connectionString);
+            var command = new SqlCommand("SELECT Title FROM Books WHERE Title LIKE @search", connection);
+            command.Parameters.AddWithValue("@search", "%" + keyword.Trim() + "%");
+            connection.Open();
+
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                result.Add(reader.GetString(0));
             }
+
             return result;
         }
-
     }
 }

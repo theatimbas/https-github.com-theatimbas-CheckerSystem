@@ -20,7 +20,12 @@ namespace ELibraryDataLogic
 
         public List<UserAccount> GetAccounts()
         {
-            return users;
+            return users.Select(u => new UserAccount
+            {
+                UserName = u.UserName,
+                Password = u.Password,
+                Favorites = new List<string>(u.Favorites ?? new List<string>())
+            }).ToList();
         }
 
         public UserAccount GetAccountByUsername(string username)
@@ -32,8 +37,31 @@ namespace ELibraryDataLogic
         {
             if (!IsUserAlreadyRegistered(user.UserName))
             {
-                users.Add(user);
+                users.Add(new UserAccount
+                {
+                    UserName = user.UserName,
+                    Password = user.Password,
+                    Favorites = new List<string>()
+                });
             }
+        }
+
+        public bool RegisterAccount(string userName, string password)
+        {
+            if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(password))
+                return false;
+
+            if (IsUserAlreadyRegistered(userName))
+                return false;
+
+            CreateAccount(new UserAccount
+            {
+                UserName = userName.Trim(),
+                Password = password.Trim(),
+                Favorites = new List<string>()
+            });
+
+            return true;
         }
 
         public void UpdateAccount(UserAccount user)
@@ -46,13 +74,15 @@ namespace ELibraryDataLogic
             }
         }
 
-        public void RemoveAccount(string userName)
+        public bool DeleteAccount(string userName)
         {
             var user = GetAccountByUsername(userName);
             if (user != null)
             {
                 users.Remove(user);
+                return true;
             }
+            return false;
         }
 
         public bool ValidateAccount(string userName, string password)
@@ -69,18 +99,18 @@ namespace ELibraryDataLogic
         public List<string> GetFavorites(string userName)
         {
             var user = GetAccountByUsername(userName);
-            return user?.Favorites ?? new List<string>();
+            return user?.Favorites != null ? new List<string>(user.Favorites) : new List<string>();
         }
 
         public bool AddFavorite(string userName, string book)
         {
             var user = GetAccountByUsername(userName);
-            if (user == null) return false;
-            user.Favorites ??= new List<string>();
-            bool bookExists = genreBooks.Values.Any(list => list.Contains(book));
-            if (!bookExists) return false;
+            if (user == null || string.IsNullOrWhiteSpace(book)) return false;
 
-            if (user.Favorites.Contains(book)) return false;
+            user.Favorites ??= new List<string>();
+
+            if (!genreBooks.Values.Any(g => g.Contains(book)) || user.Favorites.Contains(book))
+                return false;
 
             user.Favorites.Add(book);
             return true;
@@ -103,10 +133,16 @@ namespace ELibraryDataLogic
 
         public List<string> GetBooksByGenre(string genre)
         {
-            return genreBooks.ContainsKey(genre) ? genreBooks[genre] : new List<string>();
+            if (string.IsNullOrWhiteSpace(genre)) return new List<string>();
+
+            return genreBooks.ContainsKey(genre) ? new List<string>(genreBooks[genre]) : new List<string>();
         }
+
         public List<string> SearchBooksTitle(string keyword)
         {
+            if (string.IsNullOrWhiteSpace(keyword))
+                return new List<string>();
+
             var results = new List<string>();
 
             foreach (var books in genreBooks.Values)
@@ -114,7 +150,8 @@ namespace ELibraryDataLogic
                 results.AddRange(books.Where(book =>
                     book.Contains(keyword, System.StringComparison.OrdinalIgnoreCase)));
             }
-            return results;
+
+            return results.Distinct().ToList();
         }
     }
 }

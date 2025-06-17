@@ -1,19 +1,22 @@
-﻿using System.Collections.Generic;
-using PFinderCommon;
+﻿using PFinderCommon;
+using System.Collections.Generic;
 
-public interface IFinderDataService
+namespace ELibraryDataLogic
 {
-    List<UserAccount> GetAccounts();
-    UserAccount GetAccountByUsername(string userName);
-    void CreateAccount(UserAccount userAccount);
-    void UpdateAccount(UserAccount userAccount);
-    void RemoveAccount(string userName);
-    bool ValidateAccount(string userName, string password);
-    bool IsUserAlreadyRegistered(string userName);
-    List<string> GetFavorites(string userName);
-    bool AddFavorite(string userName, string bookTitle);
-    bool RemoveFavorite(string userName, string bookTitle);
-    List<string> GetGenres();
-    List<string> GetBooksByGenre(string genre);
-    List<string> SearchBooksTitle(string keyword);
+    public interface IFinderDataService
+    {
+        List<UserAccount> GetAccounts();
+        UserAccount GetAccountByUsername(string UserName);
+        void CreateAccount(UserAccount user);
+        void UpdateAccount(UserAccount user);
+        bool DeleteAccount(string UserName);
+        bool ValidateAccount(string UserName, string Password);
+        bool IsUserAlreadyRegistered(string UserName);
+        List<string> GetFavorites(string UserName);
+        bool AddFavorite(string UserName, string book);
+        bool RemoveFavorite(string UserName, string book);
+        List<string> GetGenres();
+        List<string> GetBooksByGenre(string genre);
+        List<string> SearchBooksTitle(string KeyWord);
+    }
 }

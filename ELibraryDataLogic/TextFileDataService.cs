@@ -35,16 +35,15 @@ namespace ELibraryDataLogic
             foreach (var line in File.ReadAllLines(filePath))
             {
                 var parts = line.Split('|');
-                if (parts.Length >= 3)
+                if (parts.Length >= 2)
                 {
-                    users.Add(new UserAccount
+                    var user = new UserAccount
                     {
                         UserName = parts[0],
                         Password = parts[1],
-                        Favorites = parts[2]
-                            .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                            .Select(f => f.Trim()).ToList()
-                    });
+                        Favorites = parts.Length > 2 ? parts[2].Split(',').Where(f => !string.IsNullOrWhiteSpace(f)).ToList() : new List<string>()
+                    };
+                    users.Add(user);
                 }
             }
         }
@@ -56,21 +55,13 @@ namespace ELibraryDataLogic
             File.WriteAllLines(filePath, lines);
         }
 
-        private bool IsValidInput(string? input)
-        {
-            return !string.IsNullOrWhiteSpace(input);
-        }
+        public List<UserAccount> GetAccounts() => new(users);
 
-        public UserAccount? GetAccountByUsername(string username)
-        {
-            if (!IsValidInput(username)) return null;
-            return users.FirstOrDefault(u => u.UserName.Equals(username, StringComparison.OrdinalIgnoreCase));
-        }
+        public UserAccount GetAccountByUsername(string UserName) =>
+            users.FirstOrDefault(u => u.UserName.Equals(UserName, StringComparison.OrdinalIgnoreCase));
 
         public void CreateAccount(UserAccount user)
         {
-            if (!IsValidInput(user.UserName) || !IsValidInput(user.Password)) return;
-
             if (!IsUserAlreadyRegistered(user.UserName))
             {
                 user.Favorites ??= new List<string>();
@@ -81,8 +72,6 @@ namespace ELibraryDataLogic
 
         public void UpdateAccount(UserAccount user)
         {
-            if (!IsValidInput(user.UserName)) return;
-
             var existing = GetAccountByUsername(user.UserName);
             if (existing != null)
             {
@@ -92,55 +81,31 @@ namespace ELibraryDataLogic
             }
         }
 
-        public void RemoveAccount(string userName)
+        public bool DeleteAccount(string UserName)
         {
-            if (!IsValidInput(userName)) return;
-
-            var user = GetAccountByUsername(userName);
+            var user = GetAccountByUsername(UserName);
             if (user != null)
             {
                 users.Remove(user);
                 SaveToFile();
+                return true;
             }
+            return false;
         }
 
-        public bool RegisterAccount(string userName, string password)
+        public bool ValidateAccount(string UserName, string Password) =>
+            GetAccountByUsername(UserName)?.Password == Password;
+
+        public bool IsUserAlreadyRegistered(string UserName) =>
+            users.Any(u => u.UserName.Equals(UserName, StringComparison.OrdinalIgnoreCase));
+
+        public List<string> GetFavorites(string UserName) =>
+            GetAccountByUsername(UserName)?.Favorites ?? new();
+
+        public bool AddFavorite(string UserName, string book)
         {
-            if (!IsValidInput(userName) || !IsValidInput(password))
-                return false;
-
-            if (IsUserAlreadyRegistered(userName)) return false;
-
-            var newUser = new UserAccount
-            {
-                UserName = userName,
-                Password = password,
-                Favorites = new List<string>()
-            };
-            CreateAccount(newUser);
-            return true;
-        }
-
-        public bool ValidateAccount(string userName, string password)
-        {
-            if (!IsValidInput(userName) || !IsValidInput(password))
-                return false;
-
-            return GetAccountByUsername(userName)?.Password == password;
-        }
-
-        public bool IsUserAlreadyRegistered(string userName)
-        {
-            if (!IsValidInput(userName)) return false;
-            return users.Any(u => u.UserName.Equals(userName, StringComparison.OrdinalIgnoreCase));
-        }
-
-        public bool AddFavorite(string userName, string book)
-        {
-            if (!IsValidInput(userName) || !IsValidInput(book)) return false;
-
-            var user = GetAccountByUsername(userName);
-            if (user == null) return false;
+            var user = GetAccountByUsername(UserName);
+            if (user == null || string.IsNullOrWhiteSpace(book)) return false;
 
             user.Favorites ??= new List<string>();
             if (user.Favorites.Contains(book)) return false;
@@ -150,53 +115,30 @@ namespace ELibraryDataLogic
             return true;
         }
 
-        public bool RemoveFavorite(string userName, string book)
+        public bool RemoveFavorite(string UserName, string book)
         {
-            if (!IsValidInput(userName) || !IsValidInput(book)) return false;
+            var user = GetAccountByUsername(UserName);
+            if (user?.Favorites == null || !user.Favorites.Contains(book)) return false;
 
-            var user = GetAccountByUsername(userName);
-            if (user?.Favorites == null) return false;
-
-            if (user.Favorites.Remove(book))
-            {
-                SaveToFile();
-                return true;
-            }
-
-            return false;
+            user.Favorites.Remove(book);
+            SaveToFile();
+            return true;
         }
-
-        public List<string> GetFavorites(string userName)
-        {
-            if (!IsValidInput(userName)) return new List<string>();
-            return GetAccountByUsername(userName)?.Favorites ?? new List<string>();
-        }
-
-        public List<UserAccount> GetAccounts() => new(users);
 
         public List<string> GetGenres() => new(genres.Keys);
 
-        public List<string> GetBooksByGenre(string genre)
+        public List<string> GetBooksByGenre(string genre) =>
+            genres.TryGetValue(genre, out var books) ? new List<string>(books) : new List<string>();
+
+        public List<string> SearchBooksTitle(string KeyWord)
         {
-            return genres.TryGetValue(genre, out var books) ? new List<string>(books) : new List<string>();
+            if (string.IsNullOrWhiteSpace(KeyWord)) return new();
+
+            return genres.Values
+                .SelectMany(b => b)
+                .Where(b => b.Contains(KeyWord, StringComparison.OrdinalIgnoreCase))
+                .Distinct()
+                .ToList();
         }
-        public List<string> SearchBooksTitle(string keyword)
-        {
-            var results = new List<string>();
-
-            foreach (var genre in genres)
-            {
-                foreach (var book in genre.Value)
-                {
-                    if (book.Contains(keyword, StringComparison.OrdinalIgnoreCase))
-                    {
-                        results.Add(book);
-                    }
-                }
-            }
-
-            return results;
-        }
-
     }
 }

@@ -22,10 +22,10 @@ namespace ELibraryDataLogic
             { "Historical", new List<string>{ "I Love You Since 1892", "Reincarnated as Binibini", "Our Asymptotic Love" } }
         };
 
-        public JsonFileDataService(string pathOverride = null)
+        public JsonFileDataService(string PathOverride = null)
         {
-            if (!string.IsNullOrWhiteSpace(pathOverride))
-                filePath = pathOverride;
+            if (!string.IsNullOrWhiteSpace(PathOverride))
+                filePath = PathOverride;
 
             LoadFromFile();
         }
@@ -60,9 +60,9 @@ namespace ELibraryDataLogic
             return new List<UserAccount>(users);
         }
 
-        public UserAccount GetAccountByUsername(string username)
+        public UserAccount GetAccountByUsername(string Username)
         {
-            return users.FirstOrDefault(u => u.UserName == username);
+            return users.FirstOrDefault(u => u.UserName == Username);
         }
 
         public void CreateAccount(UserAccount user)
@@ -85,42 +85,44 @@ namespace ELibraryDataLogic
                 SaveToFile();
             }
         }
-        public void RemoveAccount(string userName)
+        public bool DeleteAccount(string UserName)
         {
-            var user = GetAccountByUsername(userName);
+            var user = GetAccountByUsername(UserName);
             if (user != null)
             {
                 users.Remove(user);
                 SaveToFile();
+                return true;
             }
+            return false;
         }
 
-        public bool ValidateAccount(string userName, string password)
+        public bool ValidateAccount(string UserName, string Password)
         {
-            var user = GetAccountByUsername(userName);
-            return user != null && user.Password == password;
+            var user = GetAccountByUsername(UserName);
+            return user != null && user.Password == Password;
         }
 
-        public bool IsUserAlreadyRegistered(string userName)
+        public bool IsUserAlreadyRegistered(string UserName)
         {
-            return users.Any(u => u.UserName == userName);
+            return users.Any(u => u.UserName == UserName);
         }
 
-        public List<string> GetFavorites(string userName)
+        public List<string> GetFavorites(string UserName)
         {
-            var user = GetAccountByUsername(userName);
+            var user = GetAccountByUsername(UserName);
             return user?.Favorites ?? new List<string>();
         }
 
-        public bool AddFavorite(string userName, string book)
+        public bool AddFavorite(string UserName, string book)
         {
-            var user = GetAccountByUsername(userName);
+            var user = GetAccountByUsername(UserName);
             if (user == null) return false;
 
             user.Favorites ??= new List<string>();
 
-            bool bookExists = genres.Values.Any(list => list.Contains(book));
-            if (!bookExists) return false;
+            bool BookExists = genres.Values.Any(list => list.Contains(book));
+            if (!BookExists) return false;
 
             if (user.Favorites.Contains(book)) return false;
 
@@ -129,30 +131,30 @@ namespace ELibraryDataLogic
             return true;
         }
 
-        public bool RemoveFavorite(string userName, string book)
+        public bool RemoveFavorite(string UserName, string book)
         {
-            var user = GetAccountByUsername(userName);
+            var user = GetAccountByUsername(UserName);
             if (user?.Favorites == null || !user.Favorites.Contains(book)) return false;
 
             user.Favorites.Remove(book);
             SaveToFile();
             return true;
         }
-        public List<string> SearchBooksTitle(string keyword)
+        public List<string> SearchBooksTitle(string KeyWord)
         {
-            if (string.IsNullOrWhiteSpace(keyword))
+            if (string.IsNullOrWhiteSpace(KeyWord))
                 return new List<string>();
 
-            keyword = keyword.Trim().ToLower();
-            var MatchedBooks = new List<string>();
+            KeyWord = KeyWord.Trim().ToLower();
+            var MatchBooks = new List<string>();
 
             foreach (var BookList in genres.Values)
             {
-                MatchedBooks.AddRange(BookList.Where(book =>
-                    book.ToLower().Contains(keyword)));
+                MatchBooks.AddRange(BookList.Where(book =>
+                    book.ToLower().Contains(KeyWord)));
             }
 
-            return MatchedBooks.Distinct().ToList();
+            return MatchBooks.Distinct().ToList();
         }
 
         public List<string> GetGenres()
