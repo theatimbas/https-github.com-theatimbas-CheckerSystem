@@ -39,9 +39,11 @@ namespace ELibraryDataLogic
                 {
                     var user = new UserAccount
                     {
-                        UserName = parts[0],
-                        Password = parts[1],
-                        Favorites = parts.Length > 2 ? parts[2].Split(',').Where(f => !string.IsNullOrWhiteSpace(f)).ToList() : new List<string>()
+                        UserName = parts[0].Trim(),
+                        Password = parts[1].Trim(),
+                        Favorites = parts.Length > 2
+                            ? parts[2].Split(',', StringSplitOptions.RemoveEmptyEntries).Select(f => f.Trim()).ToList()
+                            : new List<string>()
                     };
                     users.Add(user);
                 }
@@ -55,17 +57,28 @@ namespace ELibraryDataLogic
             File.WriteAllLines(filePath, lines);
         }
 
-        public List<UserAccount> GetAccounts() => new(users);
+        public List<UserAccount> GetAccounts() =>
+            users.Select(u => new UserAccount
+            {
+                UserName = u.UserName,
+                Password = u.Password,
+                Favorites = new List<string>(u.Favorites ?? new List<string>())
+            }).ToList();
 
-        public UserAccount GetAccountByUsername(string UserName) =>
-            users.FirstOrDefault(u => u.UserName.Equals(UserName, StringComparison.OrdinalIgnoreCase));
+        public UserAccount? GetAccountByUsername(string userName) =>
+            users.FirstOrDefault(u => u.UserName.Equals(userName.Trim(), StringComparison.OrdinalIgnoreCase));
 
         public void CreateAccount(UserAccount user)
         {
             if (!IsUserAlreadyRegistered(user.UserName))
             {
                 user.Favorites ??= new List<string>();
-                users.Add(user);
+                users.Add(new UserAccount
+                {
+                    UserName = user.UserName.Trim(),
+                    Password = user.Password.Trim(),
+                    Favorites = new List<string>(user.Favorites)
+                });
                 SaveToFile();
             }
         }
@@ -75,15 +88,15 @@ namespace ELibraryDataLogic
             var existing = GetAccountByUsername(user.UserName);
             if (existing != null)
             {
-                existing.Password = user.Password;
+                existing.Password = user.Password.Trim();
                 existing.Favorites = user.Favorites ?? new List<string>();
                 SaveToFile();
             }
         }
 
-        public bool DeleteAccount(string UserName)
+        public bool DeleteAccount(string userName)
         {
-            var user = GetAccountByUsername(UserName);
+            var user = GetAccountByUsername(userName);
             if (user != null)
             {
                 users.Remove(user);
@@ -93,31 +106,36 @@ namespace ELibraryDataLogic
             return false;
         }
 
-        public bool ValidateAccount(string UserName, string Password) =>
-            GetAccountByUsername(UserName)?.Password == Password;
+        public bool ValidateAccount(string userName, string password) =>
+            GetAccountByUsername(userName)?.Password == password.Trim();
 
-        public bool IsUserAlreadyRegistered(string UserName) =>
-            users.Any(u => u.UserName.Equals(UserName, StringComparison.OrdinalIgnoreCase));
+        public bool IsUserAlreadyRegistered(string userName) =>
+            users.Any(u => u.UserName.Equals(userName.Trim(), StringComparison.OrdinalIgnoreCase));
 
-        public List<string> GetFavorites(string UserName) =>
-            GetAccountByUsername(UserName)?.Favorites ?? new();
-
-        public bool AddFavorite(string UserName, string book)
+        public List<string> GetFavorites(string userName)
         {
-            var user = GetAccountByUsername(UserName);
+            var user = GetAccountByUsername(userName);
+            return user?.Favorites != null ? new List<string>(user.Favorites) : new List<string>();
+        }
+
+        public bool AddFavorite(string userName, string book)
+        {
+            var user = GetAccountByUsername(userName);
             if (user == null || string.IsNullOrWhiteSpace(book)) return false;
 
             user.Favorites ??= new List<string>();
-            if (user.Favorites.Contains(book)) return false;
+
+            bool bookExists = genres.Values.Any(list => list.Contains(book));
+            if (!bookExists || user.Favorites.Contains(book)) return false;
 
             user.Favorites.Add(book);
             SaveToFile();
             return true;
         }
 
-        public bool RemoveFavorite(string UserName, string book)
+        public bool RemoveFavorite(string userName, string book)
         {
-            var user = GetAccountByUsername(UserName);
+            var user = GetAccountByUsername(userName);
             if (user?.Favorites == null || !user.Favorites.Contains(book)) return false;
 
             user.Favorites.Remove(book);
@@ -125,18 +143,18 @@ namespace ELibraryDataLogic
             return true;
         }
 
-        public List<string> GetGenres() => new(genres.Keys);
+        public List<string> GetGenres() => genres.Keys.ToList();
 
         public List<string> GetBooksByGenre(string genre) =>
             genres.TryGetValue(genre, out var books) ? new List<string>(books) : new List<string>();
 
-        public List<string> SearchBooksTitle(string KeyWord)
+        public List<string> SearchBooksTitle(string keyword)
         {
-            if (string.IsNullOrWhiteSpace(KeyWord)) return new();
+            if (string.IsNullOrWhiteSpace(keyword)) return new();
 
             return genres.Values
                 .SelectMany(b => b)
-                .Where(b => b.Contains(KeyWord, StringComparison.OrdinalIgnoreCase))
+                .Where(b => b.Contains(keyword, StringComparison.OrdinalIgnoreCase))
                 .Distinct()
                 .ToList();
         }

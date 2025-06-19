@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using PFinderCommon;
 
@@ -6,9 +7,9 @@ namespace ELibraryDataLogic
 {
     public class InMemoryDataService : IFinderDataService
     {
-        private readonly List<UserAccount> users = new List<UserAccount>();
+        private readonly List<UserAccount> users = new();
 
-        private readonly Dictionary<string, List<string>> genreBooks = new Dictionary<string, List<string>>
+        private readonly Dictionary<string, List<string>> genreBooks = new()
         {
             { "Fantasy", new List<string>{ "Titan Academy", "Charm Academy", "Tantei High", "Olympus Academy" } },
             { "Romance", new List<string>{ "Hell University", "University Series", "Buenaventura Series", "The Girl He Never Noticed" } },
@@ -28,7 +29,7 @@ namespace ELibraryDataLogic
             }).ToList();
         }
 
-        public UserAccount GetAccountByUsername(string username)
+        public UserAccount? GetAccountByUsername(string username)
         {
             return users.FirstOrDefault(u => u.UserName == username);
         }
@@ -41,7 +42,7 @@ namespace ELibraryDataLogic
                 {
                     UserName = user.UserName,
                     Password = user.Password,
-                    Favorites = new List<string>()
+                    Favorites = user.Favorites ?? new List<string>()
                 });
             }
         }
@@ -104,12 +105,15 @@ namespace ELibraryDataLogic
 
         public bool AddFavorite(string userName, string book)
         {
+            if (string.IsNullOrWhiteSpace(book)) return false;
+
             var user = GetAccountByUsername(userName);
-            if (user == null || string.IsNullOrWhiteSpace(book)) return false;
+            if (user == null) return false;
 
             user.Favorites ??= new List<string>();
 
-            if (!genreBooks.Values.Any(g => g.Contains(book)) || user.Favorites.Contains(book))
+            bool bookExists = genreBooks.Values.Any(g => g.Contains(book));
+            if (!bookExists || user.Favorites.Contains(book))
                 return false;
 
             user.Favorites.Add(book);
@@ -134,21 +138,20 @@ namespace ELibraryDataLogic
         public List<string> GetBooksByGenre(string genre)
         {
             if (string.IsNullOrWhiteSpace(genre)) return new List<string>();
-
-            return genreBooks.ContainsKey(genre) ? new List<string>(genreBooks[genre]) : new List<string>();
+            return genreBooks.TryGetValue(genre, out var books) ? new List<string>(books) : new List<string>();
         }
 
         public List<string> SearchBooksTitle(string keyword)
         {
-            if (string.IsNullOrWhiteSpace(keyword))
-                return new List<string>();
+            if (string.IsNullOrWhiteSpace(keyword)) return new List<string>();
 
+            keyword = keyword.Trim().ToLower();
             var results = new List<string>();
 
             foreach (var books in genreBooks.Values)
             {
                 results.AddRange(books.Where(book =>
-                    book.Contains(keyword, System.StringComparison.OrdinalIgnoreCase)));
+                    book.ToLower().Contains(keyword)));
             }
 
             return results.Distinct().ToList();

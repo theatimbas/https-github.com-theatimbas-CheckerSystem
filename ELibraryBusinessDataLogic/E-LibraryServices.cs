@@ -6,7 +6,7 @@ using ELibraryDataLogic;
 public static class E_LibraryServices
 {
     private static IFinderDataService dataService = new PenFinderDB();
-    private static UserAccount CurrentUser = null;
+    private static UserAccount? CurrentUser = null;
 
     public static bool RegisterAccount(string UserName, string Password)
     {
@@ -48,7 +48,7 @@ public static class E_LibraryServices
 
     public static List<string> MyFavorites()
     {
-        if (CurrentUser == null) return new List<string>();
+        if (CurrentUser?.UserName == null) return new List<string>();
         CurrentUser.Favorites = dataService.GetFavorites(CurrentUser.UserName);
         return CurrentUser.Favorites;
     }
@@ -87,9 +87,10 @@ public static class E_LibraryServices
         if (string.IsNullOrWhiteSpace(KeyWord)) return new List<string>();
         return dataService.SearchBooksTitle(KeyWord);
     }
+
     public static bool DeleteAccount()
     {
-        if (CurrentUser == null)
+        if (CurrentUser?.UserName == null)
             return false;
 
         string UserName = CurrentUser.UserName;
@@ -101,7 +102,7 @@ public static class E_LibraryServices
 
     private static bool AddBookToUser(string book)
     {
-        if (CurrentUser == null || string.IsNullOrWhiteSpace(book)) return false;
+        if (CurrentUser?.UserName == null || string.IsNullOrWhiteSpace(book)) return false;
 
         bool BookExist = false;
         foreach (var genre in dataService.GetGenres())
@@ -124,7 +125,7 @@ public static class E_LibraryServices
 
     private static bool RemoveBookFromUser(string book)
     {
-        if (CurrentUser == null || string.IsNullOrWhiteSpace(book)) return false;
+        if (CurrentUser?.UserName == null || string.IsNullOrWhiteSpace(book)) return false;
 
         bool RemovedBook = dataService.RemoveFavorite(CurrentUser.UserName, book);
         if (RemovedBook)

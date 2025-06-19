@@ -1,4 +1,5 @@
-﻿using PFinderCommon;
+﻿#nullable enable
+using PFinderCommon;
 using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
@@ -19,27 +20,27 @@ namespace ELibraryDataLogic
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
-                string UserName = reader.GetString(0);
+                string userName = reader.GetString(0);
                 accounts.Add(new UserAccount
                 {
-                    UserName = UserName,
+                    UserName = userName,
                     Password = reader.GetString(1),
-                    Favorites = GetFavorites(UserName)
+                    Favorites = GetFavorites(userName)
                 });
             }
             return accounts;
         }
 
-        public UserAccount? GetAccountByUsername(string UserName)
+        public UserAccount? GetAccountByUsername(string userName)
         {
-            if (string.IsNullOrWhiteSpace(UserName))
+            if (string.IsNullOrWhiteSpace(userName))
                 return null;
 
-            UserName = UserName.Trim();
+            userName = userName.Trim();
 
             using var conn = new SqlConnection(connectionString);
             using var cmd = new SqlCommand("SELECT UserName, Password FROM UserAccounts WHERE UserName = @UserName", conn);
-            cmd.Parameters.AddWithValue("@UserName", UserName);
+            cmd.Parameters.AddWithValue("@UserName", userName);
             conn.Open();
             using var reader = cmd.ExecuteReader();
             if (reader.Read())
@@ -48,39 +49,40 @@ namespace ELibraryDataLogic
                 {
                     UserName = reader.GetString(0),
                     Password = reader.GetString(1),
-                    Favorites = GetFavorites(UserName)
+                    Favorites = GetFavorites(userName)
                 };
             }
             return null;
         }
 
-        public void CreateAccount(UserAccount UserAccount)
+        public void CreateAccount(UserAccount userAccount)
         {
-            RegisterAccount(UserAccount.UserName, UserAccount.Password);
+            if (userAccount == null) return;
+            RegisterAccount(userAccount.UserName, userAccount.Password);
         }
 
-        public bool RegisterAccount(string UserName, string Password)
+        public bool RegisterAccount(string? userName, string? password)
         {
-            if (string.IsNullOrWhiteSpace(UserName) || string.IsNullOrWhiteSpace(Password))
+            if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(password))
                 return false;
 
-            UserName = UserName.Trim();
-            Password = Password.Trim();
+            userName = userName.Trim();
+            password = password.Trim();
 
-            if (IsUserAlreadyRegistered(UserName))
+            if (IsUserAlreadyRegistered(userName))
                 return false;
 
             using var conn = new SqlConnection(connectionString);
             using var cmd = new SqlCommand(
                 "INSERT INTO UserAccounts (UserName, Password) VALUES (@UserName, @Password)", conn);
 
-            cmd.Parameters.AddWithValue("@UserName", UserName);
-            cmd.Parameters.AddWithValue("@Password", Password);
+            cmd.Parameters.AddWithValue("@UserName", userName);
+            cmd.Parameters.AddWithValue("@Password", password);
             conn.Open();
             return cmd.ExecuteNonQuery() > 0;
         }
 
-        public void UpdateAccount(UserAccount account)
+        public void UpdateAccount(UserAccount? account)
         {
             if (account == null) return;
 
@@ -88,13 +90,13 @@ namespace ELibraryDataLogic
             using var cmd = new SqlCommand(
                 "UPDATE UserAccounts SET Password = @Password WHERE UserName = @UserName", conn);
 
-            cmd.Parameters.AddWithValue("@Password", account.Password.Trim());
-            cmd.Parameters.AddWithValue("@UserName", account.UserName.Trim());
+            cmd.Parameters.AddWithValue("@Password", account.Password?.Trim() ?? string.Empty);
+            cmd.Parameters.AddWithValue("@UserName", account.UserName?.Trim() ?? string.Empty);
             conn.Open();
             cmd.ExecuteNonQuery();
         }
 
-        public bool DeleteAccount(string userName)
+        public bool DeleteAccount(string? userName)
         {
             if (string.IsNullOrWhiteSpace(userName))
                 return false;
@@ -127,7 +129,7 @@ namespace ELibraryDataLogic
             }
         }
 
-        public bool ValidateAccount(string userName, string password)
+        public bool ValidateAccount(string? userName, string? password)
         {
             if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(password))
                 return false;
@@ -143,7 +145,7 @@ namespace ELibraryDataLogic
             return ((int)cmd.ExecuteScalar()) > 0;
         }
 
-        public bool IsUserAlreadyRegistered(string userName)
+        public bool IsUserAlreadyRegistered(string? userName)
         {
             if (string.IsNullOrWhiteSpace(userName))
                 return false;
@@ -158,7 +160,7 @@ namespace ELibraryDataLogic
             return ((int)cmd.ExecuteScalar()) > 0;
         }
 
-        public List<string> GetFavorites(string userName)
+        public List<string> GetFavorites(string? userName)
         {
             var list = new List<string>();
 
@@ -167,7 +169,7 @@ namespace ELibraryDataLogic
 
             using var conn = new SqlConnection(connectionString);
             using var cmd = new SqlCommand(
-                "SELECT BookTitle FROM UserFavorites WHERE UserName = @UserName", conn);  // ✅ Fixed column name
+                "SELECT BookTitle FROM UserFavorites WHERE UserName = @UserName", conn);
 
             cmd.Parameters.AddWithValue("@UserName", userName.Trim());
             conn.Open();
@@ -180,7 +182,7 @@ namespace ELibraryDataLogic
             return list;
         }
 
-        public bool AddFavorite(string userName, string book)
+        public bool AddFavorite(string? userName, string? book)
         {
             if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(book))
                 return false;
@@ -203,7 +205,7 @@ namespace ELibraryDataLogic
             return cmd.ExecuteNonQuery() > 0;
         }
 
-        public bool RemoveFavorite(string userName, string book)
+        public bool RemoveFavorite(string? userName, string? book)
         {
             if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(book))
                 return false;
@@ -236,7 +238,7 @@ namespace ELibraryDataLogic
             return list;
         }
 
-        public List<string> GetBooksByGenre(string genre)
+        public List<string> GetBooksByGenre(string? genre)
         {
             var list = new List<string>();
 
@@ -262,19 +264,19 @@ namespace ELibraryDataLogic
             return list;
         }
 
-        public List<string> SearchBooksTitle(string keyword)
+        public List<string> SearchBooksTitle(string? keyword)
         {
-            List<string> result = new List<string>();
+            List<string> result = new();
 
             if (string.IsNullOrWhiteSpace(keyword))
                 return result;
 
-            using var connection = new SqlConnection(connectionString);
-            var command = new SqlCommand("SELECT Title FROM Books WHERE Title LIKE @search", connection);
-            command.Parameters.AddWithValue("@search", "%" + keyword.Trim() + "%");
-            connection.Open();
+            using var conn = new SqlConnection(connectionString);
+            var cmd = new SqlCommand("SELECT Title FROM Books WHERE Title LIKE @search", conn);
+            cmd.Parameters.AddWithValue("@search", "%" + keyword.Trim() + "%");
+            conn.Open();
 
-            using var reader = command.ExecuteReader();
+            using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
                 result.Add(reader.GetString(0));

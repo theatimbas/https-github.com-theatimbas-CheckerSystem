@@ -24,7 +24,7 @@ namespace ELibraryDataLogic
             // dataService = new InMemoryDataService();
             // dataService = new TextFileDataService("accounts.txt");
             // dataService = new JsonFileDataService("accounts.json");
-            dataService = new PenFinderDB(); 
+            dataService = new PenFinderDB();
         }
 
         public List<UserAccount> GetAllAccounts() => dataService.GetAccounts();
@@ -56,7 +56,7 @@ namespace ELibraryDataLogic
             if (dataService.ValidateAccount(UserName, Password))
             {
                 CurrentUser = dataService.GetAccountByUsername(UserName);
-                return true;
+                return CurrentUser != null;
             }
             return false;
         }
@@ -80,7 +80,7 @@ namespace ELibraryDataLogic
 
         public bool AddFavorite(string book)
         {
-            if (CurrentUser == null)
+            if (CurrentUser?.UserName == null)
                 return false;
 
             bool BookExist = genres.Values.Any(BookList => BookList.Contains(book));
@@ -96,14 +96,19 @@ namespace ELibraryDataLogic
 
         public bool RemoveFavorite(string book)
         {
-            if (CurrentUser == null) return false;
+            if (CurrentUser?.UserName == null)
+                return false;
+
             return dataService.RemoveFavorite(CurrentUser.UserName, book);
         }
+
         public bool RemoveFavorites(string book) => RemoveFavorite(book);
 
         public List<string> MyFavorites()
         {
-            if (CurrentUser == null) return new List<string>();
+            if (CurrentUser?.UserName == null)
+                return new List<string>();
+
             return dataService.GetFavorites(CurrentUser.UserName);
         }
 
@@ -118,13 +123,15 @@ namespace ELibraryDataLogic
 
         public List<string> SearchBooks(string KeyWord)
         {
-            if (string.IsNullOrWhiteSpace(KeyWord)) return new List<string>();
+            if (string.IsNullOrWhiteSpace(KeyWord))
+                return new List<string>();
+
             return dataService.SearchBooksTitle(KeyWord);
         }
 
         public bool DeleteCurrentAccount()
         {
-            if (CurrentUser == null)
+            if (CurrentUser?.UserName == null)
                 return false;
 
             string UserName = CurrentUser.UserName;
