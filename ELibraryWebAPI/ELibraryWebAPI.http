@@ -1,0 +1,6 @@
+@ELibraryWebAPI_HostAddress = http://localhost:5243
+
+GET {{ELibraryWebAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

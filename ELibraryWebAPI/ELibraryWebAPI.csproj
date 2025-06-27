@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ConsoleApp1\ELibrarySystem.csproj" />
+    <ProjectReference Include="..\ELibraryBusinessDataLogic\ELibraryBusinessLogic.csproj" />
+    <ProjectReference Include="..\ELibraryDataLogic\ELibraryDataLogic.csproj" />
+    <ProjectReference Include="..\PFinderCommon\PFinderCommon.csproj" />
+  </ItemGroup>
+
+</Project>

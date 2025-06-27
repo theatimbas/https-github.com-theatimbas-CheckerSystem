@@ -9,42 +9,46 @@ namespace ELibraryDataLogic
     {
         private readonly List<UserAccount> users = new();
 
-        private readonly Dictionary<string, List<string>> genreBooks = new()
-        {
-            { "Fantasy", new List<string>{ "Titan Academy", "Charm Academy", "Tantei High", "Olympus Academy" } },
-            { "Romance", new List<string>{ "Hell University", "University Series", "Buenaventura Series", "The Girl He Never Noticed" } },
-            { "Drama", new List<string>{ "The Tempest", "A Wife's Cry", "Salamasim", "Taste of Sky" } },
-            { "Science-Fiction", new List<string>{ "Ender's Game", "Project: Yngrid", "The Peculiars Tale", "Mnemosyne's Tale" } },
-            { "Action", new List<string>{ "The Maze Runner", "The Hunger Games", "Divergent", "The Fifth Wave" } },
-            { "Historical", new List<string>{ "I Love You Since 1892", "Reincarnated as Binibini", "Our Asymptotic Love" } }
-        };
-
         public List<UserAccount> GetAccounts()
         {
-            return users.Select(u => new UserAccount
+            List<UserAccount> accounts = new();
+            foreach (var user in users)
             {
-                UserName = u.UserName,
-                Password = u.Password,
-                Favorites = new List<string>(u.Favorites ?? new List<string>())
-            }).ToList();
+                accounts.Add(new UserAccount
+                {
+                    UserName = user.UserName,
+                    Password = user.Password,
+                    Favorites = new List<string>(user.Favorites ?? new List<string>())
+                });
+            }
+            return accounts;
         }
 
         public UserAccount? GetAccountByUsername(string username)
         {
-            return users.FirstOrDefault(u => u.UserName == username);
+            if (string.IsNullOrWhiteSpace(username))
+                return null;
+
+            foreach (var user in users)
+            {
+                if (user.UserName.Equals(username.Trim(), StringComparison.OrdinalIgnoreCase))
+                    return user;
+            }
+
+            return null;
         }
 
         public void CreateAccount(UserAccount user)
         {
-            if (!IsUserAlreadyRegistered(user.UserName))
+            if (user == null || string.IsNullOrWhiteSpace(user.UserName) || IsUserAlreadyRegistered(user.UserName))
+                return;
+
+            users.Add(new UserAccount
             {
-                users.Add(new UserAccount
-                {
-                    UserName = user.UserName,
-                    Password = user.Password,
-                    Favorites = user.Favorites ?? new List<string>()
-                });
-            }
+                UserName = user.UserName.Trim(),
+                Password = user.Password.Trim(),
+                Favorites = user.Favorites ?? new List<string>()
+            });
         }
 
         public bool RegisterAccount(string userName, string password)
@@ -57,8 +61,8 @@ namespace ELibraryDataLogic
 
             CreateAccount(new UserAccount
             {
-                UserName = userName.Trim(),
-                Password = password.Trim(),
+                UserName = userName,
+                Password = password,
                 Favorites = new List<string>()
             });
 
@@ -67,6 +71,9 @@ namespace ELibraryDataLogic
 
         public void UpdateAccount(UserAccount user)
         {
+            if (user == null || string.IsNullOrWhiteSpace(user.UserName))
+                return;
+
             var existingUser = GetAccountByUsername(user.UserName);
             if (existingUser != null)
             {
@@ -88,32 +95,48 @@ namespace ELibraryDataLogic
 
         public bool ValidateAccount(string userName, string password)
         {
+            if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(password))
+                return false;
+
             var user = GetAccountByUsername(userName);
             return user != null && user.Password == password;
         }
 
         public bool IsUserAlreadyRegistered(string userName)
         {
-            return users.Any(u => u.UserName == userName);
+            if (string.IsNullOrWhiteSpace(userName))
+                return false;
+
+            foreach (var user in users)
+            {
+                if (user.UserName.Equals(userName.Trim(), StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
         }
 
         public List<string> GetFavorites(string userName)
         {
             var user = GetAccountByUsername(userName);
-            return user?.Favorites != null ? new List<string>(user.Favorites) : new List<string>();
+            if (user != null && user.Favorites != null)
+                return new List<string>(user.Favorites);
+
+            return new List<string>();
         }
 
         public bool AddFavorite(string userName, string book)
         {
-            if (string.IsNullOrWhiteSpace(book)) return false;
+            if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(book))
+                return false;
 
             var user = GetAccountByUsername(userName);
-            if (user == null) return false;
+            if (user == null || user.Favorites == null)
+                return false;
 
-            user.Favorites ??= new List<string>();
+            if (!Library.BookExists(book))
+                return false;
 
-            bool bookExists = genreBooks.Values.Any(g => g.Contains(book));
-            if (!bookExists || user.Favorites.Contains(book))
+            if (user.Favorites.Contains(book))
                 return false;
 
             user.Favorites.Add(book);
@@ -122,6 +145,9 @@ namespace ELibraryDataLogic
 
         public bool RemoveFavorite(string userName, string book)
         {
+            if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(book))
+                return false;
+
             var user = GetAccountByUsername(userName);
             if (user?.Favorites == null || !user.Favorites.Contains(book))
                 return false;
@@ -132,29 +158,23 @@ namespace ELibraryDataLogic
 
         public List<string> GetGenres()
         {
-            return genreBooks.Keys.ToList();
+            return Library.GetGenres();
         }
 
         public List<string> GetBooksByGenre(string genre)
         {
-            if (string.IsNullOrWhiteSpace(genre)) return new List<string>();
-            return genreBooks.TryGetValue(genre, out var books) ? new List<string>(books) : new List<string>();
+            if (string.IsNullOrWhiteSpace(genre))
+                return new List<string>();
+
+            return Library.GetBooksByGenre(genre);
         }
 
         public List<string> SearchBooksTitle(string keyword)
         {
-            if (string.IsNullOrWhiteSpace(keyword)) return new List<string>();
+            if (string.IsNullOrWhiteSpace(keyword))
+                return new List<string>();
 
-            keyword = keyword.Trim().ToLower();
-            var results = new List<string>();
-
-            foreach (var books in genreBooks.Values)
-            {
-                results.AddRange(books.Where(book =>
-                    book.ToLower().Contains(keyword)));
-            }
-
-            return results.Distinct().ToList();
+            return Library.SearchBooks(keyword);
         }
     }
 }
